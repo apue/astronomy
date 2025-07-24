@@ -5,8 +5,12 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { eventSystem, EventTypes } from './EventSystem.js';
+import { timeController } from './TimeController.js';
+import { AstronomyUtils } from '../utils/AstronomyUtils.js';
+import { Sun, Earth, Venus } from '../objects/index.js';
 
-export default class SceneManager {
+export class SceneManager {
   constructor(canvasElement) {
     this.canvas = canvasElement;
     this.scene = new THREE.Scene();
@@ -21,6 +25,23 @@ export default class SceneManager {
     this.frameCount = 0;
     this.lastFPSUpdate = 0;
     this.currentFPS = 0;
+    
+    // 时间相关
+    this.lastTimeUpdate = 0;
+    this.timeUpdateInterval = 1000; // 1秒更新一次
+    
+    // 天体管理
+    this.celestialBodies = new Map();
+    this.orbitalPaths = new Map();
+    
+    // 相机状态
+    this.cameraStates = {
+      overview: { position: [0, 50, 100], target: [0, 0, 0] },
+      earth: { position: [15, 5, 15], target: [0, 0, 0] },
+      telescope: { position: [2, 0, 2], target: [0, 0, 0] }
+    };
+    
+    this.setupEventListeners();
   }
   
   async initialize() {
@@ -125,6 +146,16 @@ export default class SceneManager {
     console.log('Lighting setup complete');
   }
   
+  setupEventListeners() {
+    // 监听时间变化
+    eventSystem.subscribe(EventTypes.TIME_CHANGED, (data) => {
+      this.updateCelestialPositions(data.time);
+    });
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => this.handleResize());
+  }
+
   setupScene() {
     // 设置雾效果，增加深度感
     this.scene.fog = new THREE.Fog(0x000011, 50, 200);
@@ -161,47 +192,30 @@ export default class SceneManager {
   }
   
   async createTestScene() {
-    // 创建一个测试用的太阳模型
-    const sunGeometry = new THREE.SphereGeometry(2, 32, 16);
-    const sunMaterial = new THREE.MeshBasicMaterial({
-      color: 0xfdb813,
-      emissive: 0xfdb813,
-      emissiveIntensity: 0.3,
-    });
-    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
-    sun.name = 'sun';
-    this.scene.add(sun);
-    
-    // 创建一个测试用的地球模型
-    const earthGeometry = new THREE.SphereGeometry(0.5, 32, 16);
-    const earthMaterial = new THREE.MeshPhongMaterial({
-      color: 0x6b93d6,
-      shininess: 10,
-    });
-    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
-    earth.position.set(8, 0, 0);
-    earth.name = 'earth';
-    earth.castShadow = true;
-    earth.receiveShadow = true;
-    this.scene.add(earth);
-    
-    // 创建一个测试用的金星模型
-    const venusGeometry = new THREE.SphereGeometry(0.48, 32, 16);
-    const venusMaterial = new THREE.MeshPhongMaterial({
-      color: 0xffc649,
-      shininess: 5,
-    });
-    const venus = new THREE.Mesh(venusGeometry, venusMaterial);
-    venus.position.set(5.8, 0, 0);
-    venus.name = 'venus';
-    venus.castShadow = true;
-    venus.receiveShadow = true;
-    this.scene.add(venus);
-    
-    // 创建轨道线
-    this.createOrbitLines();
-    
-    console.log('Test scene created with Sun, Earth, and Venus');
+    try {
+      // 创建太阳
+      const sun = new Sun();
+      await sun.initialize();
+      this.addCelestialBody(sun);
+
+      // 创建地球
+      const earth = new Earth();
+      await earth.initialize();
+      this.addCelestialBody(earth);
+
+      // 创建金星
+      const venus = new Venus();
+      await venus.initialize();
+      this.addCelestialBody(venus);
+
+      // 创建轨道线
+      this.createOrbitLines();
+      
+      console.log('Solar system created with realistic celestial bodies');
+    } catch (error) {
+      console.error('Failed to create test scene:', error);
+      throw error;
+    }
   }
   
   createOrbitLines() {
@@ -240,6 +254,100 @@ export default class SceneManager {
     this.scene.add(body.mesh);
     
     console.log(`Added celestial body: ${body.name}`);
+  }
+
+  /**
+   * 更新所有天体位置
+   * @param {Date} time - 当前时间
+   */
+  updateCelestialPositions(time) {
+    const julianDate = this.dateToJulian(time);
+    
+    for (const [name, body] of this.celestialBodies) {
+      if (body.updatePosition) {
+        body.updatePosition(julianDate);
+      }
+    }
+    
+    // 更新轨道线
+    this.updateOrbitalPaths(julianDate);
+  }
+
+  /**
+   * 添加轨道线
+   * @param {string} name - 轨道名称
+   * @param {Object} orbitElements - 轨道参数
+   */
+  addOrbitalPath(name, orbitElements) {
+    const points = this.generateOrbitalPoints(orbitElements, 100);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    
+    const material = new THREE.LineBasicMaterial({
+      color: 0x444444,
+      transparent: true,
+      opacity: 0.3
+    });
+    
+    const line = new THREE.Line(geometry, material);
+    line.name = `${name}_orbit`;
+    
+    this.orbitalPaths.set(name, line);
+    this.scene.add(line);
+  }
+
+  /**
+   * 生成轨道点
+   * @param {Object} orbitElements - 轨道参数
+   * @param {number} segments - 分段数
+   * @returns {Array} 轨道点数组
+   */
+  generateOrbitalPoints(orbitElements, segments = 64) {
+    const points = [];
+    const { semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis } = orbitElements;
+    
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const radius = semiMajorAxis * (1 - eccentricity * eccentricity) / (1 + eccentricity * Math.cos(angle));
+      
+      const x = radius * Math.cos(angle + argumentOfPeriapsis);
+      const y = radius * Math.sin(angle + argumentOfPeriapsis) * Math.sin(inclination);
+      const z = radius * Math.sin(angle + argumentOfPeriapsis) * Math.cos(inclination);
+      
+      points.push(new THREE.Vector3(x, y, z));
+    }
+    
+    return points;
+  }
+
+  /**
+   * 更新轨道线
+   * @param {number} julianDate - 儒略日
+   */
+  updateOrbitalPaths(julianDate) {
+    // 轨道线通常是静态的，这里可以添加动态效果
+  }
+
+  /**
+   * 日期转儒略日
+   * @param {Date} date - 日期
+   * @returns {number} 儒略日
+   */
+  dateToJulian(date) {
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const hour = date.getUTCHours();
+    const minute = date.getUTCMinutes();
+    const second = date.getUTCSeconds();
+
+    const a = Math.floor((14 - month) / 12);
+    const y = year + 4800 - a;
+    const m = month + 12 * a - 3;
+
+    const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+    const jd = jdn + (hour - 12) / 24 + minute / 1440 + second / 86400;
+
+    return jd;
   }
   
   removeCelestialBody(name) {
