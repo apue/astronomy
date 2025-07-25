@@ -17,17 +17,17 @@ export class EducationalGuidanceSystem {
     this.userProgress = new Map();
     this.achievements = new Set();
     this.hints = new Map();
-    
+
     this.initialize();
   }
 
   initialize() {
     console.log('📚 Initializing Educational Guidance System...');
-    
+
     this.createTutorials();
     this.setupEventListeners();
     this.loadUserProgress();
-    
+
     console.log('✅ Educational Guidance System initialized');
     console.log(`📖 Available tutorials: ${this.tutorials.size}`);
   }
@@ -205,7 +205,7 @@ export class EducationalGuidanceSystem {
 
     this.currentTutorial = tutorialId;
     this.currentStep = 0;
-    
+
     if (!this.userProgress.has(userId)) {
       this.userProgress.set(userId, new Map());
     }
@@ -222,9 +222,9 @@ export class EducationalGuidanceSystem {
     }
 
     console.log(`📖 开始教程: ${tutorial.title}`);
-    
+
     this.showStep(tutorial.steps[0]);
-    
+
     eventSystem.emit('tutorialStarted', {
       tutorialId,
       title: tutorial.title,
@@ -244,7 +244,7 @@ export class EducationalGuidanceSystem {
     };
 
     eventSystem.emit('showTutorialStep', stepData);
-    
+
     // 如果是交互步骤，启动相应的交互模式
     if (step.interactive) {
       this.startInteractiveMode(step.action, step.hints);
@@ -259,12 +259,12 @@ export class EducationalGuidanceSystem {
 
     const progress = this.userProgress.get(userId);
     const tutorialProgress = progress.get(this.currentTutorial);
-    
+
     tutorialProgress.completedSteps.push(stepId);
     tutorialProgress.currentStep = this.currentStep + 1;
-    
+
     console.log(`✅ 完成步骤: ${stepId}`);
-    
+
     // 检查是否完成所有步骤
     const tutorial = this.tutorials.get(this.currentTutorial);
     if (tutorialProgress.currentStep >= tutorial.steps.length) {
@@ -288,15 +288,15 @@ export class EducationalGuidanceSystem {
   completeTutorial(userId = 'default') {
     const progress = this.userProgress.get(userId);
     const tutorialProgress = progress.get(this.currentTutorial);
-    
+
     tutorialProgress.completed = new Date();
     tutorialProgress.totalTime = Date.now() - tutorialProgress.started.getTime();
-    
+
     // 授予成就
     const achievement = this.grantAchievement(this.currentTutorial, userId);
-    
+
     console.log(`🎓 完成教程: ${this.currentTutorial}`);
-    
+
     eventSystem.emit('tutorialCompleted', {
       tutorialId: this.currentTutorial,
       achievement,
@@ -368,7 +368,7 @@ export class EducationalGuidanceSystem {
 
     const tutorial = this.tutorials.get(this.currentTutorial);
     const currentStepData = tutorial.steps[this.currentStep];
-    
+
     if (this.meetsStepRequirements(currentStepData, data)) {
       this.completeStep(currentStepData.id);
     }
@@ -498,7 +498,7 @@ export class EducationalGuidanceSystem {
       tutorials: Object.fromEntries(this.userProgress.get(userId) || new Map()),
       achievements: Array.from(this.achievements)
     };
-    
+
     localStorage.setItem(`educational_progress_${userId}`, JSON.stringify(progress));
   }
 
@@ -521,7 +521,7 @@ export class EducationalGuidanceSystem {
     this.userProgress.delete(userId);
     this.achievements.clear();
     localStorage.removeItem(`educational_progress_${userId}`);
-    
+
     eventSystem.emit('progressReset', { userId });
   }
 
@@ -531,7 +531,7 @@ export class EducationalGuidanceSystem {
   getHint(tutorialId, stepId) {
     const tutorial = this.tutorials.get(tutorialId);
     const step = tutorial?.steps.find(s => s.id === stepId);
-    
+
     if (step?.hints?.length > 0) {
       const randomHint = step.hints[Math.floor(Math.random() * step.hints.length)];
       return {
@@ -540,7 +540,7 @@ export class EducationalGuidanceSystem {
         tutorialId
       };
     }
-    
+
     return null;
   }
 
@@ -549,7 +549,7 @@ export class EducationalGuidanceSystem {
    */
   skipStep(userId = 'default') {
     if (!this.currentTutorial) return;
-    
+
     this.completeStep(this.tutorials.get(this.currentTutorial).steps[this.currentStep].id, userId);
   }
 
@@ -559,7 +559,7 @@ export class EducationalGuidanceSystem {
   getLearningStatistics(userId = 'default') {
     const tutorials = this.getTutorialStatus(userId);
     const achievements = this.getUserAchievements(userId);
-    
+
     return {
       totalTutorials: this.tutorials.size,
       completedTutorials: tutorials.filter(t => t.completed).length,
@@ -597,16 +597,16 @@ export class EducationalGuidanceSystem {
    */
   countConsecutiveDays(dates) {
     if (dates.length === 0) return 0;
-    
+
     const sorted = [...new Set(dates)].sort();
     let streak = 1;
     let maxStreak = 1;
-    
+
     for (let i = 1; i < sorted.length; i++) {
       const prev = new Date(sorted[i-1]);
       const curr = new Date(sorted[i]);
       const diff = (curr - prev) / (1000 * 60 * 60 * 24);
-      
+
       if (diff === 1) {
         streak++;
         maxStreak = Math.max(maxStreak, streak);
@@ -614,7 +614,7 @@ export class EducationalGuidanceSystem {
         streak = 1;
       }
     }
-    
+
     return maxStreak;
   }
 }

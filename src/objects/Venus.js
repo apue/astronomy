@@ -11,7 +11,7 @@ import { AstronomyUtils } from '../utils/AstronomyUtils.js';
 export class Venus extends CelestialBody {
   constructor(options = {}) {
     const venusData = CELESTIAL_BODIES.VENUS;
-    
+
     super('Venus', {
       radius: venusData.radius / SCALE_FACTORS.SIZE_SCALE,
       mass: venusData.mass,
@@ -29,16 +29,16 @@ export class Venus extends CelestialBody {
       },
       ...options
     });
-    
+
     this.type = 'venus';
     this.atmosphereHeight = this.radius * 0.05;
     this.cloudRotationSpeed = 0.002;
     this.cloudAngle = 0;
-    
+
     // 金星逆向自转
     this.rotationSpeed *= -1;
-    
-    this.initializeVenus();
+
+    // 异步初始化将在外部调用
   }
 
   async initializeVenus() {
@@ -55,29 +55,41 @@ export class Venus extends CelestialBody {
 
   async loadVenusTextures() {
     const textureLoader = new THREE.TextureLoader();
-    
+
+    // 尝试加载主要纹理
     try {
       this.surfaceTexture = await new Promise((resolve, reject) => {
         textureLoader.load(TEXTURE_PATHS.VENUS.surface, resolve, undefined, reject);
       });
-      
-      this.cloudTexture = await new Promise((resolve, reject) => {
-        textureLoader.load(TEXTURE_PATHS.VENUS.clouds, resolve, undefined, reject);
-      });
-      
-      // 优化纹理
-      [this.surfaceTexture, this.cloudTexture].forEach(texture => {
-        if (texture) {
-          texture.generateMipmaps = true;
-          texture.minFilter = THREE.LinearMipmapLinearFilter;
-          texture.magFilter = THREE.LinearFilter;
-          texture.anisotropy = 16;
-        }
-      });
-      
     } catch (error) {
-      console.warn('Failed to load venus textures:', error);
+      console.warn('Failed to load Venus surface texture:', error);
     }
+
+    // 尝试加载可选纹理（静默处理失败）
+    const loadOptionalTexture = async (path, name) => {
+      try {
+        return await new Promise((resolve, reject) => {
+          textureLoader.load(path, resolve, undefined, reject);
+        });
+      } catch (error) {
+        console.log(`Optional texture ${name} not available:`, path);
+        return null;
+      }
+    };
+
+    this.cloudTexture = await loadOptionalTexture(TEXTURE_PATHS.VENUS.clouds, 'clouds');
+    this.normalTexture = await loadOptionalTexture(TEXTURE_PATHS.VENUS.normal, 'normal');
+    this.atmosphereTexture = await loadOptionalTexture(TEXTURE_PATHS.VENUS.atmosphere, 'atmosphere');
+
+    // 优化已加载的纹理
+    [this.surfaceTexture, this.cloudTexture, this.normalTexture, this.atmosphereTexture]
+      .filter(texture => texture !== null)
+      .forEach(texture => {
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.anisotropy = 16;
+      });
   }
 
   createDenseAtmosphere() {
@@ -87,7 +99,7 @@ export class Venus extends CelestialBody {
       32,
       16
     );
-    
+
     const atmosphereMaterial = new THREE.MeshPhongMaterial({
       color: 0xFFA500,
       transparent: true,
@@ -95,7 +107,7 @@ export class Venus extends CelestialBody {
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending
     });
-    
+
     this.atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     this.mesh.add(this.atmosphereMesh);
 
@@ -105,14 +117,14 @@ export class Venus extends CelestialBody {
       32,
       16
     );
-    
+
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0xFFD700,
       transparent: true,
       opacity: 0.2,
       side: THREE.BackSide
     });
-    
+
     this.atmosphereGlow = new THREE.Mesh(glowGeometry, glowMaterial);
     this.mesh.add(this.atmosphereGlow);
   }
@@ -126,7 +138,7 @@ export class Venus extends CelestialBody {
       32,
       16
     );
-    
+
     const cloudMaterial = new THREE.MeshPhongMaterial({
       map: this.cloudTexture,
       transparent: true,
@@ -135,7 +147,7 @@ export class Venus extends CelestialBody {
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    
+
     this.cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
     this.mesh.add(this.cloudMesh);
 
@@ -145,7 +157,7 @@ export class Venus extends CelestialBody {
       32,
       16
     );
-    
+
     const innerCloudMaterial = new THREE.MeshPhongMaterial({
       map: this.cloudTexture,
       transparent: true,
@@ -154,7 +166,7 @@ export class Venus extends CelestialBody {
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    
+
     this.innerCloudMesh = new THREE.Mesh(innerCloudGeometry, innerCloudMaterial);
     this.mesh.add(this.innerCloudMesh);
   }
@@ -179,13 +191,13 @@ export class Venus extends CelestialBody {
 
   updateRotation(deltaTime) {
     super.updateRotation(deltaTime);
-    
+
     // 云层旋转（比地球快）
     if (this.cloudMesh) {
       this.cloudAngle += this.cloudRotationSpeed * deltaTime;
       this.cloudMesh.rotation.y = this.cloudAngle;
     }
-    
+
     if (this.innerCloudMesh) {
       this.innerCloudMesh.rotation.y = this.cloudAngle * 0.8;
     }
@@ -198,7 +210,7 @@ export class Venus extends CelestialBody {
 
   updateLOD(cameraPosition) {
     super.updateLOD(cameraPosition);
-    
+
     // 根据距离调整大气层透明度
     if (this.atmosphereMesh) {
       const distance = this.position.distanceTo(cameraPosition);
@@ -209,19 +221,19 @@ export class Venus extends CelestialBody {
 
   setVisible(visible) {
     super.setVisible(visible);
-    
+
     if (this.atmosphereMesh) {
       this.atmosphereMesh.visible = visible;
     }
-    
+
     if (this.cloudMesh) {
       this.cloudMesh.visible = visible;
     }
-    
+
     if (this.innerCloudMesh) {
       this.innerCloudMesh.visible = visible;
     }
-    
+
     if (this.atmosphereGlow) {
       this.atmosphereGlow.visible = visible;
     }
@@ -230,7 +242,7 @@ export class Venus extends CelestialBody {
   getInfo() {
     const baseInfo = super.getInfo();
     const venusData = CELESTIAL_BODIES.VENUS;
-    
+
     return {
       ...baseInfo,
       type: 'Planet',
@@ -248,27 +260,27 @@ export class Venus extends CelestialBody {
 
   dispose() {
     super.dispose();
-    
+
     if (this.atmosphereMesh) {
       this.atmosphereMesh.geometry.dispose();
       this.atmosphereMesh.material.dispose();
     }
-    
+
     if (this.cloudMesh) {
       this.cloudMesh.geometry.dispose();
       this.cloudMesh.material.dispose();
     }
-    
+
     if (this.innerCloudMesh) {
       this.innerCloudMesh.geometry.dispose();
       this.innerCloudMesh.material.dispose();
     }
-    
+
     if (this.atmosphereGlow) {
       this.atmosphereGlow.geometry.dispose();
       this.atmosphereGlow.material.dispose();
     }
-    
+
     [this.surfaceTexture, this.cloudTexture].forEach(texture => {
       if (texture) texture.dispose();
     });

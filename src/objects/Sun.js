@@ -11,7 +11,7 @@ import { AstronomyUtils } from '../utils/AstronomyUtils.js';
 export class Sun extends CelestialBody {
   constructor(options = {}) {
     const sunData = CELESTIAL_BODIES.SUN;
-    
+
     super('Sun', {
       radius: sunData.radius / SCALE_FACTORS.SIZE_SCALE,
       mass: sunData.mass,
@@ -32,13 +32,13 @@ export class Sun extends CelestialBody {
       },
       ...options
     });
-    
+
     this.type = 'sun';
     this.luminosity = sunData.luminosity;
     this.temperature = sunData.temperature;
     this.coronaTexture = null;
-    
-    this.initializeSun();
+
+    // 异步初始化将在外部调用
   }
 
   async initializeSun() {
@@ -65,7 +65,8 @@ export class Sun extends CelestialBody {
         );
       });
     } catch (error) {
-      console.warn('Failed to load corona texture:', error);
+      console.log('Optional corona texture not available:', TEXTURE_PATHS.SUN.corona);
+      this.coronaTexture = null;
     }
   }
 
@@ -78,7 +79,7 @@ export class Sun extends CelestialBody {
       opacity: 0.3,
       side: THREE.BackSide
     });
-    
+
     this.glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
     this.mesh.add(this.glowMesh);
 
@@ -91,14 +92,14 @@ export class Sun extends CelestialBody {
     this.sunLight = new THREE.PointLight(0xffffff, 2, 1000);
     this.sunLight.position.set(0, 0, 0);
     this.sunLight.castShadow = true;
-    
+
     // 阴影配置
     this.sunLight.shadow.mapSize.width = 2048;
     this.sunLight.shadow.mapSize.height = 2048;
     this.sunLight.shadow.camera.near = 0.5;
     this.sunLight.shadow.camera.far = 500;
     this.sunLight.shadow.bias = -0.0001;
-    
+
     this.mesh.add(this.sunLight);
 
     // 环境光补充
@@ -128,19 +129,19 @@ export class Sun extends CelestialBody {
     const particleCount = 1000;
     const particles = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
-    
+
     for (let i = 0; i < particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.random() * Math.PI;
       const radius = this.radius * (0.9 + Math.random() * 0.1);
-      
+
       positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
       positions[i * 3 + 2] = radius * Math.cos(phi);
     }
-    
+
     particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    
+
     const particleMaterial = new THREE.PointsMaterial({
       color: 0xFFAA00,
       size: 0.1,
@@ -148,19 +149,19 @@ export class Sun extends CelestialBody {
       opacity: 0.6,
       blending: THREE.AdditiveBlending
     });
-    
+
     this.surfaceParticles = new THREE.Points(particles, particleMaterial);
     this.mesh.add(this.surfaceParticles);
   }
 
   updateRotation(deltaTime) {
     super.updateRotation(deltaTime);
-    
+
     // 更新日冕旋转
     if (this.coronaMesh) {
       this.coronaMesh.rotation.y += deltaTime * 0.1;
     }
-    
+
     // 更新表面粒子动画
     if (this.surfaceParticles) {
       this.surfaceParticles.rotation.y += deltaTime * 0.3;
@@ -186,22 +187,22 @@ export class Sun extends CelestialBody {
 
   dispose() {
     super.dispose();
-    
+
     if (this.glowMesh) {
       this.glowMesh.geometry.dispose();
       this.glowMesh.material.dispose();
     }
-    
+
     if (this.coronaMesh) {
       this.coronaMesh.geometry.dispose();
       this.coronaMesh.material.dispose();
     }
-    
+
     if (this.surfaceParticles) {
       this.surfaceParticles.geometry.dispose();
       this.surfaceParticles.material.dispose();
     }
-    
+
     if (this.coronaTexture) {
       this.coronaTexture.dispose();
     }

@@ -24,7 +24,7 @@ module.exports = {
     'prefer-template': 'error',
     'template-curly-spacing': 'error',
     'arrow-spacing': 'error',
-    'comma-dangle': ['error', 'es5'],
+    'comma-dangle': ['error', 'only-multiline'],
     'quotes': ['error', 'single'],
     'semi': ['error', 'always'],
     'indent': ['error', 2],

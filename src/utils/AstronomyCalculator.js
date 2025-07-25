@@ -22,29 +22,29 @@ export class AstronomyCalculator {
     const J = jd + 0.5;
     const I = Math.floor(J);
     const F = J - I;
-    
+
     let A, B, C, D, E, G;
-    
+
     if (I > 2299160) {
       A = Math.floor((I - 1867216.25) / 36524.25);
       B = I + 1 + A - Math.floor(A / 4);
     } else {
       B = I;
     }
-    
+
     C = B + 1524;
     D = Math.floor((C - 122.1) / 365.25);
     E = Math.floor(365.25 * D);
     G = Math.floor((C - E) / 30.6001);
-    
+
     const day = C - E - Math.floor(30.6001 * G) + F;
     const month = G < 13.5 ? G - 1 : G - 13;
     const year = month > 2.5 ? D - 4716 : D - 4715;
-    
+
     const hours = (day % 1) * 24;
     const minutes = (hours % 1) * 60;
     const seconds = (minutes % 1) * 60;
-    
+
     return new Date(year, month - 1, Math.floor(day), Math.floor(hours), Math.floor(minutes), Math.floor(seconds));
   }
 
@@ -60,13 +60,13 @@ export class AstronomyCalculator {
     const hour = date.getUTCHours();
     const minute = date.getUTCMinutes();
     const second = date.getUTCSeconds();
-    
+
     const a = Math.floor((14 - month) / 12);
     const y = year + 4800 - a;
     const m = month + 12 * a - 3;
-    
+
     const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-    
+
     return jdn + (hour - 12) / 24 + minute / 1440 + second / 86400;
   }
 
@@ -87,30 +87,30 @@ export class AstronomyCalculator {
    */
   calculateVSOP87Position(planet, jd) {
     const T = this.julianCentury(jd);
-    
+
     let L, B, R;
-    
+
     switch (planet.toLowerCase()) {
-      case 'earth':
-        L = this.calculateEarthLongitude(T);
-        B = this.calculateEarthLatitude(T);
-        R = this.calculateEarthDistance(T);
-        break;
-      case 'venus':
-        L = this.calculateVenusLongitude(T);
-        B = this.calculateVenusLatitude(T);
-        R = this.calculateVenusDistance(T);
-        break;
-      case 'sun':
-      default:
-        // 太阳位于原点
-        return {
-          longitude: 0,
-          latitude: 0,
-          distance: 0
-        };
+    case 'earth':
+      L = this.calculateEarthLongitude(T);
+      B = this.calculateEarthLatitude(T);
+      R = this.calculateEarthDistance(T);
+      break;
+    case 'venus':
+      L = this.calculateVenusLongitude(T);
+      B = this.calculateVenusLatitude(T);
+      R = this.calculateVenusDistance(T);
+      break;
+    case 'sun':
+    default:
+      // 太阳位于原点
+      return {
+        longitude: 0,
+        latitude: 0,
+        distance: 0
+      };
     }
-    
+
     return {
       longitude: L,
       latitude: B,
@@ -133,12 +133,12 @@ export class AstronomyCalculator {
       { A: 0.000034175, B: 18869.227549973, C: 0 },
       // 更多项...
     ];
-    
+
     let longitude = 0;
     terms.forEach(term => {
       longitude += term.A * Math.cos(term.B + term.C * T);
     });
-    
+
     return longitude;
   }
 
@@ -153,12 +153,12 @@ export class AstronomyCalculator {
       { A: 0.0004664, B: 6283.075849991, C: 0 },
       { A: 0.000075, B: 12566.151699982, C: 0 },
     ];
-    
+
     let latitude = 0;
     terms.forEach(term => {
       latitude += term.A * Math.cos(term.B + term.C * T);
     });
-    
+
     return latitude;
   }
 
@@ -174,12 +174,12 @@ export class AstronomyCalculator {
       { A: 0.016706996, B: 6283.075849991, C: 0 },
       { A: 0.000139493, B: 12566.151699982, C: 0 },
     ];
-    
+
     let distance = 0;
     terms.forEach(term => {
       distance += term.A * Math.cos(term.B + term.C * T);
     });
-    
+
     return distance;
   }
 
@@ -195,12 +195,12 @@ export class AstronomyCalculator {
       { A: 0.013539684, B: 10213.285546211, C: 0 },
       { A: 0.000765444, B: 20426.571092422, C: 0 },
     ];
-    
+
     let longitude = 0;
     terms.forEach(term => {
       longitude += term.A * Math.cos(term.B + term.C * T);
     });
-    
+
     return longitude;
   }
 
@@ -215,12 +215,12 @@ export class AstronomyCalculator {
       { A: 0.059236384, B: 10213.285546211, C: 0 },
       { A: 0.002878938, B: 20426.571092422, C: 0 },
     ];
-    
+
     let latitude = 0;
     terms.forEach(term => {
       latitude += term.A * Math.sin(term.B + term.C * T);
     });
-    
+
     return latitude;
   }
 
@@ -236,12 +236,12 @@ export class AstronomyCalculator {
       { A: 0.004863957, B: 10213.285546211, C: 0 },
       { A: 0.000029565, B: 20426.571092422, C: 0 },
     ];
-    
+
     let distance = 0;
     terms.forEach(term => {
       distance += term.A * Math.cos(term.B + term.C * T);
     });
-    
+
     return distance;
   }
 
@@ -256,7 +256,7 @@ export class AstronomyCalculator {
     const x = R * Math.cos(B) * Math.cos(L);
     const y = R * Math.cos(B) * Math.sin(L);
     const z = R * Math.sin(B);
-    
+
     return new THREE.Vector3(x, y, z);
   }
 
@@ -269,7 +269,7 @@ export class AstronomyCalculator {
   getCelestialPosition(body, date) {
     const jd = this.dateToJulian(date);
     const vsop87 = this.calculateVSOP87Position(body, jd);
-    
+
     return this.eclipticToCartesian(vsop87.longitude, vsop87.latitude, vsop87.distance);
   }
 
@@ -281,10 +281,10 @@ export class AstronomyCalculator {
   calculateTransitEvents(year) {
     const transit = VENUS_TRANSIT_EVENTS[year];
     if (!transit) return null;
-    
+
     const jd0 = this.dateToJulian(transit.date);
     const events = {
-      year: year,
+      year,
       julianDate: jd0,
       contacts: {
         first: this.dateToJulian(transit.contacts.firstContact),
@@ -293,20 +293,20 @@ export class AstronomyCalculator {
         fourth: this.dateToJulian(transit.contacts.fourthContact)
       }
     };
-    
+
     // 计算每个接触点的精确位置
     ['first', 'second', 'third', 'fourth'].forEach((contact, index) => {
       const jd = events.contacts[contact];
       const earthPos = this.getCelestialPosition('earth', this.julianToDate(jd));
       const venusPos = this.getCelestialPosition('venus', this.julianToDate(jd));
-      
+
       events.contacts[`${contact}Position`] = {
         earth: earthPos,
         venus: venusPos,
         separation: earthPos.distanceTo(venusPos)
       };
     });
-    
+
     return events;
   }
 
@@ -320,10 +320,10 @@ export class AstronomyCalculator {
   calculateParallaxAngle(observer, sun, venus) {
     const sunVenus = venus.clone().sub(sun);
     const sunObserver = observer.clone().sub(sun);
-    
+
     const dot = sunVenus.dot(sunObserver);
     const magProduct = sunVenus.length() * sunObserver.length();
-    
+
     return Math.acos(dot / magProduct);
   }
 
@@ -334,18 +334,18 @@ export class AstronomyCalculator {
    */
   calculateAUDistance(observations) {
     if (!observations || observations.length < 2) return 0;
-    
+
     const [obs1, obs2] = observations;
-    
+
     // 计算两个观测点之间的基线距离
     const baseline = this.calculateBaselineDistance(obs1, obs2);
-    
+
     // 计算视差角差异
     const parallaxDiff = Math.abs(obs1.parallaxAngle - obs2.parallaxAngle);
-    
+
     // 使用三角视差公式计算距离
     const distance = baseline / (2 * Math.tan(parallaxDiff / 2));
-    
+
     return distance;
   }
 
@@ -361,15 +361,15 @@ export class AstronomyCalculator {
     const lon1 = obs1.longitude * MATH_CONSTANTS.DEG_TO_RAD;
     const lat2 = obs2.latitude * MATH_CONSTANTS.DEG_TO_RAD;
     const lon2 = obs2.longitude * MATH_CONSTANTS.DEG_TO_RAD;
-    
+
     const dlat = lat2 - lat1;
     const dlon = lon2 - lon1;
-    
+
     const a = Math.sin(dlat / 2) * Math.sin(dlat / 2) +
               Math.cos(lat1) * Math.cos(lat2) *
               Math.sin(dlon / 2) * Math.sin(dlon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
+
     return R * c;
   }
 
@@ -392,24 +392,24 @@ export class AstronomyCalculator {
   calculateContactTimes(year, observer) {
     const transitEvents = this.calculateTransitEvents(year);
     if (!transitEvents) return null;
-    
+
     // 考虑观测者位置修正
     const longitudeCorrection = observer.longitude * MATH_CONSTANTS.DEG_TO_RAD;
     const timeCorrection = longitudeCorrection / (2 * Math.PI) * 24; // 小时
-    
+
     const correctedTimes = {};
     Object.keys(transitEvents.contacts).forEach(contact => {
       if (contact.includes('Position')) return;
-      
+
       const originalTime = this.julianToDate(transitEvents.contacts[contact]);
       const correctedTime = new Date(originalTime.getTime() + timeCorrection * 3600000);
-      
+
       correctedTimes[contact] = correctedTime;
     });
-    
+
     return {
-      year: year,
-      observer: observer,
+      year,
+      observer,
       contactTimes: correctedTimes,
       duration: transitEvents.duration
     };

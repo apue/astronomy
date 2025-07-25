@@ -15,7 +15,7 @@ export class ParallaxCalculationEngine {
     this.observationPairs = new Map();
     this.calculationHistory = [];
     this.precisionMode = 'high'; // 'standard' | 'high' | 'ultra'
-    
+
     this.constants = {
       AU: 149597870.7, // km (现代精确值)
       earthRadius: 6371.0088, // km (地球平均半径)
@@ -25,18 +25,18 @@ export class ParallaxCalculationEngine {
       lightTimeAU: 499.004786, // 光行时间(AU到地球，秒)
       gravitationalParameter: 3.986004418e14 // μ (m³/s²)
     };
-    
+
     this.initialize();
   }
 
   async initialize() {
     console.log('🔬 Initializing Parallax Calculation Engine...');
-    
+
     await this.loadVSOP87Data();
     await this.loadKeplerianElements();
     this.setupEventListeners();
-    this.validatePrecision();
-    
+    this.setupPrecision();
+
     console.log('✅ Parallax Calculation Engine initialized');
     console.log(`📊 Precision mode: ${this.precisionMode}`);
   }
@@ -90,7 +90,7 @@ export class ParallaxCalculationEngine {
    */
   async loadKeplerianElements() {
     const J2000 = 2451545.0; // J2000.0儒略日
-    
+
     this.keplerianElements.set('earth', {
       epoch: J2000,
       elements: {
@@ -130,6 +130,49 @@ export class ParallaxCalculationEngine {
         dM: 58517.81567600 * Math.PI / 180
       }
     });
+  }
+
+  /**
+   * 设置精度模式
+   */
+  setupPrecision() {
+    // 根据环境自动设置精度模式
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isHighPerformance = this.detectHighPerformance();
+
+    if (isHighPerformance) {
+      this.precisionMode = 'ultra';
+    } else if (isDevelopment) {
+      this.precisionMode = 'high';
+    } else {
+      this.precisionMode = 'standard';
+    }
+
+    console.log(`⚙️  Precision mode set to: ${this.precisionMode}`);
+  }
+
+  /**
+   * 检测高性能环境
+   */
+  detectHighPerformance() {
+    try {
+      // 检测WebGL支持
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+
+      if (!gl) return false;
+
+      // 检测GPU性能指标
+      const debugInfo = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL || 0);
+      const highPerformanceGPUs = ['NVIDIA', 'AMD', 'Intel Iris', 'Apple M'];
+
+      return highPerformanceGPUs.some(gpu =>
+        debugInfo && debugInfo.toString().includes(gpu)
+      );
+    } catch (error) {
+      console.warn('Performance detection failed:', error);
+      return false;
+    }
   }
 
   /**
@@ -185,9 +228,9 @@ export class ParallaxCalculationEngine {
     };
 
     this.calculationHistory.push(result);
-    
+
     eventSystem.emit('parallaxCalculated', result);
-    
+
     return result;
   }
 
@@ -206,7 +249,7 @@ export class ParallaxCalculationEngine {
               Math.cos(φ1) * Math.cos(φ2) *
               Math.sin(Δλ/2) * Math.sin(Δλ/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    
+
     return R * c;
   }
 
@@ -268,12 +311,12 @@ export class ParallaxCalculationEngine {
   solveKepler(M, e, tolerance = 1e-10) {
     let E = M;
     let delta = 1;
-    
+
     while (Math.abs(delta) > tolerance) {
       delta = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
       E -= delta;
     }
-    
+
     return E;
   }
 
@@ -283,14 +326,14 @@ export class ParallaxCalculationEngine {
   calculateTrueParallaxAngle(positions, baseline, loc1, loc2) {
     const R = this.constants.earthRadius;
     const D = positions.earthSunDistance * this.constants.AU;
-    
+
     // 计算观测者位置矢量
     const obs1 = this.calculateObserverVector(loc1);
     const obs2 = this.calculateObserverVector(loc2);
-    
+
     // 计算视差角
     const parallax = (baseline / D) * (180 / Math.PI) * 3600; // 转换为角秒
-    
+
     return parallax;
   }
 
@@ -301,7 +344,7 @@ export class ParallaxCalculationEngine {
     const φ = location.latitude * Math.PI / 180;
     const λ = location.longitude * Math.PI / 180;
     const R = this.constants.earthRadius;
-    
+
     return {
       x: R * Math.cos(φ) * Math.cos(λ),
       y: R * Math.cos(φ) * Math.sin(λ),
@@ -324,7 +367,7 @@ export class ParallaxCalculationEngine {
     const timeUncertainty = 120; // 2分钟 (秒)
     const angularUncertainty = 0.5; // 角秒
     const distanceUncertainty = 1000; // 米
-    
+
     return {
       time: timeUncertainty,
       angular: angularUncertainty,
@@ -342,7 +385,7 @@ export class ParallaxCalculationEngine {
    */
   calculateHistoricalParallax(year = 1761) {
     const historicalPoints = historicalObservationSystem.getHistoricalObservationPoints(year);
-    
+
     if (historicalPoints.length < 2) {
       throw new Error('需要至少两个观测点才能计算视差');
     }
@@ -387,7 +430,7 @@ export class ParallaxCalculationEngine {
    * 寻找最佳结果
    */
   findBestResult(results) {
-    return results.reduce((best, current) => 
+    return results.reduce((best, current) =>
       current.error < best.error ? current : best
     );
   }
@@ -406,7 +449,7 @@ export class ParallaxCalculationEngine {
    */
   updateCalculations(date) {
     const activeObservations = historicalObservationSystem.getActiveObservations();
-    
+
     if (activeObservations.length >= 2) {
       const bestPair = this.findBestObservationPair(activeObservations);
       if (bestPair) {
@@ -429,7 +472,7 @@ export class ParallaxCalculationEngine {
           observations[i].location,
           observations[j].location
         );
-        
+
         if (baseline > maxBaseline) {
           maxBaseline = baseline;
           bestPair = [observations[i], observations[j]];
@@ -446,13 +489,13 @@ export class ParallaxCalculationEngine {
   validateMeasurement(measurement) {
     const tolerance = this.getTolerance();
     const isValid = Math.abs(measurement.error) <= tolerance;
-    
+
     eventSystem.emit('measurementValidated', {
       measurement,
       isValid,
       tolerance
     });
-    
+
     return isValid;
   }
 
@@ -495,19 +538,19 @@ export class ParallaxCalculationEngine {
    */
   getCalculationHistory(filters = {}) {
     let history = [...this.calculationHistory];
-    
+
     if (filters.startDate) {
       history = history.filter(c => c.date >= filters.startDate);
     }
-    
+
     if (filters.endDate) {
       history = history.filter(c => c.date <= filters.endDate);
     }
-    
+
     if (filters.maxError) {
       history = history.filter(c => c.error <= filters.maxError);
     }
-    
+
     return history;
   }
 

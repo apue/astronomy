@@ -11,7 +11,7 @@ export class TextureLoader {
     this.textureLoader = new THREE.TextureLoader();
     this.loadedTextures = new Map();
     this.loadingManager = new THREE.LoadingManager();
-    
+
     this.setupLoadingManager();
   }
 
@@ -77,14 +77,14 @@ export class TextureLoader {
    */
   async loadTextures(textureUrls, options = {}) {
     const texturePromises = {};
-    
+
     for (const [key, url] of Object.entries(textureUrls)) {
       texturePromises[key] = this.loadTexture(url, options);
     }
 
     const textures = {};
     const results = await Promise.allSettled(Object.values(texturePromises));
-    
+
     Object.keys(texturePromises).forEach((key, index) => {
       const result = results[index];
       if (result.status === 'fulfilled') {
@@ -133,14 +133,14 @@ export class TextureLoader {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
     canvas.height = 64;
-    
+
     const context = canvas.getContext('2d');
     context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
     context.fillRect(0, 0, 64, 64);
-    
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
-    
+
     return texture;
   }
 
@@ -154,18 +154,18 @@ export class TextureLoader {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
-    
+
     const context = canvas.getContext('2d');
     const gradient = context.createLinearGradient(0, 0, 256, 256);
     gradient.addColorStop(0, color1);
     gradient.addColorStop(1, color2);
-    
+
     context.fillStyle = gradient;
     context.fillRect(0, 0, 256, 256);
-    
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
-    
+
     return texture;
   }
 
@@ -178,11 +178,11 @@ export class TextureLoader {
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
-    
+
     const context = canvas.getContext('2d');
     const imageData = context.createImageData(size, size);
     const data = imageData.data;
-    
+
     for (let i = 0; i < data.length; i += 4) {
       const noise = Math.random() * 255;
       data[i] = noise;
@@ -190,12 +190,12 @@ export class TextureLoader {
       data[i + 2] = noise;
       data[i + 3] = 255;
     }
-    
+
     context.putImageData(imageData, 0, 0);
-    
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
-    
+
     return texture;
   }
 
@@ -239,8 +239,8 @@ export class TextureLoader {
     return {
       loaded: this.loadingManager.itemsLoaded,
       total: this.loadingManager.itemsTotal,
-      progress: this.loadingManager.itemsTotal > 0 
-        ? (this.loadingManager.itemsLoaded / this.loadingManager.itemsTotal) * 100 
+      progress: this.loadingManager.itemsTotal > 0
+        ? (this.loadingManager.itemsLoaded / this.loadingManager.itemsTotal) * 100
         : 0
     };
   }

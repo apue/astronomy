@@ -7,6 +7,7 @@
 import { eventSystem, EventTypes } from '../core/EventSystem.js';
 import { astronomyCalculator } from '../utils/AstronomyCalculator.js';
 import { historicalObservationSystem } from './HistoricalObservationSystem.js';
+import { transitCalculator } from './TransitCalculator.js';
 
 export class UserDataRecorder {
   constructor() {
@@ -19,7 +20,7 @@ export class UserDataRecorder {
       precision: 6,
       includeMetadata: true
     };
-    
+
     this.dataSchema = {
       observation: {
         required: ['timestamp', 'observer', 'telescope', 'measurements'],
@@ -30,15 +31,15 @@ export class UserDataRecorder {
         optional: ['error', 'confidence', 'conditions']
       }
     };
-    
+
     this.initialize();
   }
 
   initialize() {
     this.loadUserPreferences();
     this.setupEventListeners();
-    this.createBackupSystem();
-    
+    this.restoreBackup();
+
     console.log('📊 User Data Recorder initialized');
   }
 
@@ -92,17 +93,17 @@ export class UserDataRecorder {
         userAgent: navigator.userAgent
       }
     };
-    
+
     this.observationRecords.push(record);
-    
+
     // 触发事件
     eventSystem.emit('observationStored', { record });
-    
+
     // 自动备份
     if (this.userPreferences.autoSave) {
       this.createBackup();
     }
-    
+
     return record.id;
   }
 
@@ -123,15 +124,27 @@ export class UserDataRecorder {
       source: measurement.source || 'manual',
       observationId: measurement.observationId || null
     };
-    
+
     this.measurementData.push(record);
-    
+
     // 计算派生数据
     this.calculateDerivedData(record);
-    
+
     eventSystem.emit('measurementStored', { record });
-    
+
     return record.id;
+  }
+
+  /**
+   * 获取凌日状态
+   */
+  getTransitStatus(time) {
+    return transitCalculator?.getTransitStatus(time) || {
+      isTransiting: false,
+      year: null,
+      phase: null,
+      progress: 0
+    };
   }
 
   /**
@@ -139,7 +152,7 @@ export class UserDataRecorder {
    */
   autoRecordObservation(timeData) {
     const transitStatus = this.getTransitStatus(timeData.time);
-    
+
     if (transitStatus.isTransiting) {
       const autoRecord = {
         timestamp: timeData.time,
@@ -158,7 +171,7 @@ export class UserDataRecorder {
         ],
         source: 'auto'
       };
-      
+
       this.recordObservation(autoRecord);
     }
   }
@@ -169,7 +182,7 @@ export class UserDataRecorder {
   calculateDerivedData(measurement) {
     if (measurement.type === 'parallax_angle') {
       const auDistance = this.calculateAUDistance(measurement.value);
-      
+
       this.recordMeasurement({
         type: 'au_distance',
         value: auDistance,
@@ -192,14 +205,14 @@ export class UserDataRecorder {
       lastAccess: new Date(),
       score: 0
     };
-    
+
     current.completed = Math.max(current.completed, progress.completed || 0);
     current.total = Math.max(current.total, progress.total || 0);
     current.lastAccess = new Date();
     current.score = Math.max(current.score, progress.score || 0);
-    
+
     this.learningProgress.set(key, current);
-    
+
     eventSystem.emit('progressUpdated', {
       lesson: key,
       progress: current
@@ -213,7 +226,7 @@ export class UserDataRecorder {
     const earthRadius = 6371; // km
     const baseline = 2 * earthRadius; // 简化基线
     const parallaxRad = parallaxAngle * (Math.PI / 180) / 3600; // 角秒转弧度
-    
+
     return baseline / Math.tan(parallaxRad);
   }
 
@@ -222,27 +235,27 @@ export class UserDataRecorder {
    */
   getObservations(filters = {}) {
     let records = [...this.observationRecords];
-    
+
     // 应用过滤器
     if (filters.startDate) {
       records = records.filter(r => r.timestamp >= filters.startDate);
     }
-    
+
     if (filters.endDate) {
       records = records.filter(r => r.timestamp <= filters.endDate);
     }
-    
+
     if (filters.target) {
       records = records.filter(r => r.target === filters.target);
     }
-    
+
     if (filters.observer) {
       records = records.filter(r => r.observer === filters.observer);
     }
-    
+
     // 排序
     records.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     return records;
   }
 
@@ -251,21 +264,21 @@ export class UserDataRecorder {
    */
   getMeasurements(filters = {}) {
     let measurements = [...this.measurementData];
-    
+
     if (filters.type) {
       measurements = measurements.filter(m => m.type === filters.type);
     }
-    
+
     if (filters.source) {
       measurements = measurements.filter(m => m.source === filters.source);
     }
-    
+
     if (filters.observationId) {
       measurements = measurements.filter(m => m.observationId === filters.observationId);
     }
-    
+
     measurements.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     return measurements;
   }
 
@@ -275,7 +288,7 @@ export class UserDataRecorder {
   generateAnalysisReport(options = {}) {
     const observations = this.getObservations(options);
     const measurements = this.getMeasurements(options);
-    
+
     const report = {
       summary: {
         totalObservations: observations.length,
@@ -283,13 +296,13 @@ export class UserDataRecorder {
         dateRange: this.getDateRange(observations),
         accuracy: this.calculateOverallAccuracy(measurements)
       },
-      observations: observations,
-      measurements: measurements,
+      observations,
+      measurements,
       statistics: this.calculateStatistics(measurements),
       learningProgress: Object.fromEntries(this.learningProgress),
       recommendations: this.generateRecommendations(observations, measurements)
     };
-    
+
     return report;
   }
 
@@ -299,15 +312,15 @@ export class UserDataRecorder {
   calculateStatistics(measurements) {
     const byType = {};
     const bySource = {};
-    
+
     measurements.forEach(m => {
       byType[m.type] = (byType[m.type] || 0) + 1;
       bySource[m.source] = (bySource[m.source] || 0) + 1;
     });
-    
+
     const parallaxMeasurements = measurements.filter(m => m.type === 'parallax_angle');
     const auDistances = measurements.filter(m => m.type === 'au_distance');
-    
+
     return {
       byType,
       bySource,
@@ -322,12 +335,12 @@ export class UserDataRecorder {
    */
   calculateParallaxAccuracy(parallaxMeasurements) {
     if (parallaxMeasurements.length === 0) return null;
-    
+
     const values = parallaxMeasurements.map(m => m.value);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length;
     const stdDev = Math.sqrt(variance);
-    
+
     return {
       mean,
       stdDev,
@@ -342,11 +355,11 @@ export class UserDataRecorder {
    */
   calculateAUAccuracy(auMeasurements) {
     if (auMeasurements.length === 0) return null;
-    
+
     const actualAU = 149597870.7; // km
     const values = auMeasurements.map(m => m.value);
     const errors = values.map(v => Math.abs(v - actualAU) / actualAU * 100);
-    
+
     return {
       meanError: errors.reduce((a, b) => a + b, 0) / errors.length,
       maxError: Math.max(...errors),
@@ -364,18 +377,18 @@ export class UserDataRecorder {
       weekly: {},
       monthly: {}
     };
-    
+
     measurements.forEach(m => {
       const date = new Date(m.timestamp);
       const day = date.toISOString().split('T')[0];
       const week = this.getWeekNumber(date);
       const month = date.toISOString().slice(0, 7);
-      
+
       distribution.daily[day] = (distribution.daily[day] || 0) + 1;
       distribution.weekly[week] = (distribution.weekly[week] || 0) + 1;
       distribution.monthly[month] = (distribution.monthly[month] || 0) + 1;
     });
-    
+
     return distribution;
   }
 
@@ -384,18 +397,18 @@ export class UserDataRecorder {
    */
   generateRecommendations(observations, measurements) {
     const recommendations = [];
-    
+
     // 基于观测数量的建议
     if (observations.length < 5) {
       recommendations.push('建议增加观测次数以提高精度');
     }
-    
+
     // 基于测量类型的建议
     const parallaxCount = measurements.filter(m => m.type === 'parallax_angle').length;
     if (parallaxCount < 3) {
       recommendations.push('建议增加视差角度测量');
     }
-    
+
     // 基于精度的建议
     const auAccuracy = this.calculateAUAccuracy(
       measurements.filter(m => m.type === 'au_distance')
@@ -403,7 +416,7 @@ export class UserDataRecorder {
     if (auAccuracy && auAccuracy.meanError > 10) {
       recommendations.push('建议改进测量精度');
     }
-    
+
     return recommendations;
   }
 
@@ -421,16 +434,16 @@ export class UserDataRecorder {
         version: '1.0'
       }
     };
-    
+
     switch (format) {
-      case 'json':
-        return JSON.stringify(data, null, 2);
-      case 'csv':
-        return this.convertToCSV(data);
-      case 'xml':
-        return this.convertToXML(data);
-      default:
-        return JSON.stringify(data, null, 2);
+    case 'json':
+      return JSON.stringify(data, null, 2);
+    case 'csv':
+      return this.convertToCSV(data);
+    case 'xml':
+      return this.convertToXML(data);
+    default:
+      return JSON.stringify(data, null, 2);
     }
   }
 
@@ -440,17 +453,17 @@ export class UserDataRecorder {
   convertToCSV(data) {
     const observations = data.observations;
     const measurements = data.measurements;
-    
+
     let csv = 'Type,Timestamp,Observer,Target,Value,Unit,Notes\n';
-    
+
     observations.forEach(obs => {
       csv += `Observation,${obs.timestamp.toISOString()},${obs.observer},${obs.target},,,${obs.notes}\n`;
     });
-    
+
     measurements.forEach(meas => {
       csv += `Measurement,${meas.timestamp.toISOString()},,${meas.type},${meas.value},${meas.unit},${meas.error || ''}\n`;
     });
-    
+
     return csv;
   }
 
@@ -460,7 +473,7 @@ export class UserDataRecorder {
   convertToXML(data) {
     let xml = '<?xml version="1.0" encoding="UTF-8"?\u003e\n';
     xml += '<observation-data\u003e\n';
-    
+
     data.observations.forEach(obs => {
       xml += '  <observation\u003e\n';
       Object.keys(obs).forEach(key => {
@@ -468,7 +481,7 @@ export class UserDataRecorder {
       });
       xml += '  </observation\u003e\n';
     });
-    
+
     xml += '</observation-data\u003e';
     return xml;
   }
@@ -485,7 +498,7 @@ export class UserDataRecorder {
    */
   getDateRange(records) {
     if (records.length === 0) return null;
-    
+
     const timestamps = records.map(r => r.timestamp.getTime());
     return {
       start: new Date(Math.min(...timestamps)),
@@ -510,7 +523,7 @@ export class UserDataRecorder {
     this.observationRecords = [];
     this.measurementData = [];
     this.learningProgress.clear();
-    
+
     eventSystem.emit('dataCleared');
   }
 
@@ -556,7 +569,7 @@ export class UserDataRecorder {
       learningProgress: Object.fromEntries(this.learningProgress),
       timestamp: new Date().toISOString()
     };
-    
+
     localStorage.setItem('dataBackup', JSON.stringify(backup));
   }
 
@@ -570,7 +583,7 @@ export class UserDataRecorder {
       this.observationRecords = data.observations || [];
       this.measurementData = data.measurements || [];
       this.learningProgress = new Map(Object.entries(data.learningProgress || {}));
-      
+
       eventSystem.emit('dataRestored', data);
     }
   }
@@ -605,10 +618,10 @@ export class UserDataRecorder {
   calculateOverallAccuracy(measurements) {
     const auMeasurements = measurements.filter(m => m.type === 'au_distance');
     if (auMeasurements.length === 0) return null;
-    
+
     const actualAU = 149597870.7;
     const errors = auMeasurements.map(m => Math.abs(m.value - actualAU) / actualAU * 100);
-    
+
     return {
       meanError: errors.reduce((a, b) => a + b, 0) / errors.length,
       medianError: errors.sort((a, b) => a - b)[Math.floor(errors.length / 2)],
@@ -625,7 +638,7 @@ export class UserDataRecorder {
       startDate: new Date(year, 0, 1),
       endDate: new Date(year, 11, 31)
     });
-    
+
     return {
       historical: historicalData,
       user: userData,

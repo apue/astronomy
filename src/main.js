@@ -1,6 +1,6 @@
 /**
  * 金星凌日测距教学网站 - 主入口文件（更新版）
- * 
+ *
  * 这是一个交互式3D教学应用，展示18世纪天文学家如何通过
  * 金星凌日现象测量地球与太阳之间的距离
  */
@@ -12,7 +12,7 @@ import { eventSystem, EventTypes } from './core/EventSystem.js';
 import { Sun, Earth, Venus } from './objects/index.js';
 import { TextureGenerator } from './utils/TextureGenerator.js';
 import { transitCalculator } from './systems/TransitCalculator.js';
-import { astronomyCalculator } from './utils/AstronomyCalculator.js';
+// import { astronomyCalculator } from './utils/AstronomyCalculator.js';
 import { advancedTimeController } from './systems/AdvancedTimeController.js';
 import { timeControlPanel } from './ui/TimeControlPanel.js';
 import { historicalObservationSystem } from './systems/HistoricalObservationSystem.js';
@@ -26,68 +26,72 @@ import { performanceOptimizer } from './systems/PerformanceOptimizer.js';
 
 class AstronomyApp {
   constructor() {
+    console.log('🏗️ AstronomyApp constructor called');
     this.sceneManager = null;
     this.canvas = null;
     this.isInitialized = false;
     this.celestialBodies = new Map();
     this.textureGenerator = new TextureGenerator();
     this.telescopeSimulation = null;
-    
+
     // 性能优化器初始化
     this.initializePerformanceOptimization();
-    
-    this.init();
+
+    // 异步初始化将在外部调用
+    console.log('🏗️ AstronomyApp constructor completed');
   }
 
   async init() {
     try {
       console.log('🚀 Initializing Astronomy Application...');
-      
+
       // 检查WebGL支持
       if (!this.checkWebGLSupport()) {
         return;
       }
-      
-      // 创建加载界面
-      this.createLoadingScreen();
-      
+
+      // 使用现有的加载界面（从HTML）
+      console.log('📺 Using existing loading screen from HTML');
+
       // 创建画布
       this.createCanvas();
-      
+
       // 初始化场景管理器
       this.updateLoadingProgress(20, '正在初始化3D场景...');
       this.sceneManager = new SceneManager(this.canvas);
       await this.sceneManager.initialize();
-      
+
       // 设置事件监听
       this.setupEventListeners();
-      
+
       // 创建占位符纹理
       this.updateLoadingProgress(40, '准备纹理资源...');
       await this.prepareTextures();
-      
+
       // 创建天体系统
       this.updateLoadingProgress(60, '创建天体模型...');
       await this.createCelestialSystem();
-      
+
       // 设置时间控制
       this.updateLoadingProgress(80, '配置时间系统...');
       await this.setupTimeControl();
-      
+
       // 初始化交互系统
       this.updateLoadingProgress(85, '初始化观测系统...');
       await this.setupInteractiveSystems();
-      
+
       // 启动渲染循环
       this.updateLoadingProgress(100, '启动应用...');
       this.sceneManager.startRenderLoop();
-      
+
       this.isInitialized = true;
-      this.hideLoadingScreen();
       
+      console.log('🔄 Hiding loading screen...');
+      this.hideLoadingScreen();
+
       console.log('✅ Astronomy Application initialized successfully');
       this.showWelcomeMessage();
-      
+
     } catch (error) {
       console.error('❌ Failed to initialize application:', error);
       this.handleInitError(error);
@@ -98,12 +102,12 @@ class AstronomyApp {
     try {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-      
+
       if (!gl) {
         this.showWebGLError();
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('WebGL check failed:', error);
@@ -153,31 +157,45 @@ class AstronomyApp {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(loadingDiv);
   }
 
   updateLoadingProgress(percent, text) {
+    // 使用HTML中的元素
     const loadingBar = document.getElementById('loading-bar');
     const loadingText = document.getElementById('loading-text');
+
+    console.log(`📊 Progress: ${percent}% - ${text}`);
     
     if (loadingBar) {
       loadingBar.style.width = `${percent}%`;
+    } else {
+      console.warn('Loading bar element not found');
     }
-    
+
     if (loadingText && text) {
       loadingText.textContent = text;
+    } else if (text) {
+      console.warn('Loading text element not found');
     }
   }
 
   hideLoadingScreen() {
+    console.log('🎭 hideLoadingScreen called');
     const loadingScreen = document.getElementById('loading-screen');
+    console.log('🎭 Loading screen element:', loadingScreen);
+    
     if (loadingScreen) {
+      console.log('🎭 Hiding loading screen...');
       loadingScreen.style.opacity = '0';
       loadingScreen.style.transition = 'opacity 0.5s ease';
       setTimeout(() => {
+        console.log('🎭 Removing loading screen element');
         loadingScreen.remove();
       }, 500);
+    } else {
+      console.warn('🎭 Loading screen element not found!');
     }
   }
 
@@ -193,7 +211,7 @@ class AstronomyApp {
       display: block;
       z-index: 1;
     `;
-    
+
     document.body.appendChild(this.canvas);
   }
 
@@ -225,7 +243,7 @@ class AstronomyApp {
   async prepareTextures() {
     // 预生成占位符纹理
     const placeholderTextures = TextureGenerator.createAllPlaceholderTextures();
-    
+
     // 将纹理缓存到全局以便使用
     window.placeholderTextures = placeholderTextures;
   }
@@ -235,22 +253,31 @@ class AstronomyApp {
       console.log('🌌 Creating celestial system...');
 
       // 创建太阳
+      console.log('☀️ Creating Sun...');
       const sun = new Sun();
-      await sun.initialize();
+      await sun.initialize(); // 基础初始化
+      await sun.initializeSun(); // 太阳特定初始化
       this.celestialBodies.set('sun', sun);
       this.sceneManager.addCelestialBody(sun);
+      console.log('✅ Sun created successfully');
 
       // 创建地球
+      console.log('🌍 Creating Earth...');
       const earth = new Earth();
-      await earth.initialize();
+      await earth.initialize(); // 基础初始化
+      await earth.initializeEarth(); // 地球特定初始化
       this.celestialBodies.set('earth', earth);
       this.sceneManager.addCelestialBody(earth);
+      console.log('✅ Earth created successfully');
 
       // 创建金星
+      console.log('♀️ Creating Venus...');
       const venus = new Venus();
-      await venus.initialize();
+      await venus.initialize(); // 基础初始化
+      await venus.initializeVenus(); // 金星特定初始化
       this.celestialBodies.set('venus', venus);
       this.sceneManager.addCelestialBody(venus);
+      console.log('✅ Venus created successfully');
 
       console.log(`🪐 Created ${this.celestialBodies.size} celestial bodies`);
 
@@ -265,52 +292,52 @@ class AstronomyApp {
     const transitDate = new Date('1761-06-06T05:00:00Z');
     timeController.setTime(transitDate);
     timeController.setSpeed(100); // 100倍速度，便于观察
-    
+
     // 初始化凌日计算器
     await transitCalculator.initializeTransitData();
-    
+
     // 初始化高级时间控制器
     await advancedTimeController.initialize();
-    
+
     // 初始化时间控制面板
     timeControlPanel.show();
-    
+
     console.log(`⏰ Time system initialized to ${transitDate.toUTCString()}`);
-    console.log(`🌟 Transit calculator initialized`);
-    console.log(`⏰ Advanced time control system ready`);
+    console.log('🌟 Transit calculator initialized');
+    console.log('⏰ Advanced time control system ready');
   }
 
   async setupInteractiveSystems() {
     console.log('🔭 Setting up interactive systems...');
-    
+
     // 初始化历史观测系统
     await historicalObservationSystem.initialize();
-    
+
     // 初始化望远镜模拟
     this.telescopeSimulation = new TelescopeSimulation(this.sceneManager);
-    
+
     // 初始化用户数据记录器
     await userDataRecorder.initialize();
-    
+
     // 初始化视差计算引擎
     await parallaxEngine.initialize();
-    
+
     // 初始化教育引导系统
     await educationalGuidanceSystem.initialize();
-    
+
     // 初始化现代界面系统
     console.log('🎨 Setting up modern interface...');
     modernInterface.createModernNavigation();
     modernInterface.createModernControlPanel();
     modernInterface.createHelpModal();
     modernInterface.createModernLoadingIndicator();
-    
+
     // 初始化UI集成系统
     await uiIntegration.initialize();
-    
+
     // 设置键盘快捷键
     this.setupInteractiveKeyboardShortcuts();
-    
+
     console.log('✅ Interactive systems initialized');
     console.log('🏛️ Historical observation system: Active');
     console.log('🔭 Telescope simulation: Ready');
@@ -324,61 +351,61 @@ class AstronomyApp {
   setupInteractiveKeyboardShortcuts() {
     document.addEventListener('keydown', (event) => {
       switch (event.key.toLowerCase()) {
-        case 'o':
-          // 显示历史观测点信息
-          this.showHistoricalObservations();
-          break;
-        case 'v':
-          // 切换望远镜视图
-          this.toggleTelescopeView();
-          break;
-        case 'g':
-          // 显示教育引导系统
-          this.showEducationalGuidance();
-          break;
-        case 'p':
-          // 显示视差计算结果
-          this.showParallaxCalculations();
-          break;
-        case 'k':
-          // 显示计算面板
-          if (uiIntegration) {
-            uiIntegration.toggleCalculationPanel();
-          }
-          break;
-        case 't':
-          // 显示教程选择器
-          if (uiIntegration) {
-            uiIntegration.showTutorialSelector();
-          }
-          break;
-        case 'a':
-          // 显示/隐藏无障碍面板
-          modernInterface.toggleAccessibilityPanel();
-          break;
-        case 'h':
-          // 显示帮助
-          modernInterface.showHelpModal();
-          break;
-        case 's':
-          // 显示设置
-          modernInterface.showSettingsModal();
-          break;
-        case 'l':
-          // 切换主题
-          const themes = ['dark', 'light', 'high-contrast'];
-          const current = modernInterface.theme;
-          const nextIndex = (themes.indexOf(current) + 1) % themes.length;
-          modernInterface.setTheme(themes[nextIndex]);
-          break;
-        case 'q':
-          // 显示性能报告
-          this.showPerformanceReport();
-          break;
-        case 'm':
-          // 手动内存清理
-          this.performMemoryCleanup();
-          break;
+      case 'o':
+        // 显示历史观测点信息
+        this.showHistoricalObservations();
+        break;
+      case 'v':
+        // 切换望远镜视图
+        this.toggleTelescopeView();
+        break;
+      case 'g':
+        // 显示教育引导系统
+        this.showEducationalGuidance();
+        break;
+      case 'p':
+        // 显示视差计算结果
+        this.showParallaxCalculations();
+        break;
+      case 'k':
+        // 显示计算面板
+        if (uiIntegration) {
+          uiIntegration.toggleCalculationPanel();
+        }
+        break;
+      case 't':
+        // 显示教程选择器
+        if (uiIntegration) {
+          uiIntegration.showTutorialSelector();
+        }
+        break;
+      case 'a':
+        // 显示/隐藏无障碍面板
+        modernInterface.toggleAccessibilityPanel();
+        break;
+      case 'h':
+        // 显示帮助
+        modernInterface.showHelpModal();
+        break;
+      case 's':
+        // 显示设置
+        modernInterface.showSettingsModal();
+        break;
+      case 'l':
+        // 切换主题
+        const themes = ['dark', 'light', 'high-contrast'];
+        const current = modernInterface.theme;
+        const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+        modernInterface.setTheme(themes[nextIndex]);
+        break;
+      case 'q':
+        // 显示性能报告
+        this.showPerformanceReport();
+        break;
+      case 'm':
+        // 手动内存清理
+        this.performMemoryCleanup();
+        break;
       }
     });
   }
@@ -386,22 +413,22 @@ class AstronomyApp {
   showHistoricalObservations() {
     const activeObservations = historicalObservationSystem.getActiveObservations();
     const currentYear = historicalObservationSystem.currentYear;
-    
+
     console.log(`
     🏛️ 历史观测点 (${currentYear}年金星凌日)
     
     活跃观测点 (${activeObservations.length}):
-    ${activeObservations.map(point => 
-      `  • ${point.name} (${point.observer})
+    ${activeObservations.map(point =>
+    `  • ${point.name} (${point.observer})
         位置: ${point.location.latitude}°, ${point.location.longitude}°
         望远镜: ${point.telescope}
         精度: ${point.accuracy}`
-    ).join('\n\n')}
+  ).join('\n\n')}
     
     视差计算:
     ${historicalObservationSystem.getParallaxCalculations(currentYear).map(calc =>
-      `  ${calc.pair}: ${calc.parallaxAngle.toFixed(2)}" → ${calc.calculatedAU.toFixed(0)} km`
-    ).join('\n')}
+    `  ${calc.pair}: ${calc.parallaxAngle.toFixed(2)}" → ${calc.calculatedAU.toFixed(0)} km`
+  ).join('\n')}
     `);
   }
 
@@ -411,8 +438,8 @@ class AstronomyApp {
       console.log(`
       🔭 当前望远镜观测数据:
       望远镜: ${currentData.telescope?.name || '未选择'}
-      位置: ${currentData.position ? 
-        `${currentData.position.lat}°, ${currentData.position.lon}°` : '未设置'}
+      位置: ${currentData.position ?
+    `${currentData.position.lat}°, ${currentData.position.lon}°` : '未设置'}
       大气条件: ${currentData.atmosphericConditions}
       测量标记: ${currentData.measurementMarks.length}个
       `);
@@ -421,36 +448,36 @@ class AstronomyApp {
 
   handleKeyPress(event) {
     switch (event.key.toLowerCase()) {
-      case 'r':
-        this.sceneManager.resetCamera();
-        break;
-      case 'f':
-        this.toggleFullscreen();
-        break;
-      case 't':
-        this.showTransitInfo();
-        break;
-      case ' ':
-        timeController.togglePause();
-        break;
-      case 'arrowright':
-        timeController.setSpeed(timeController.speed * 2);
-        break;
-      case 'arrowleft':
-        timeController.setSpeed(timeController.speed / 2);
-        break;
-      case '1':
-        this.focusOnBody('sun');
-        break;
-      case '2':
-        this.focusOnBody('earth');
-        break;
-      case '3':
-        this.focusOnBody('venus');
-        break;
-      case 'c':
-        timeControlPanel.toggle();
-        break;
+    case 'r':
+      this.sceneManager.resetCamera();
+      break;
+    case 'f':
+      this.toggleFullscreen();
+      break;
+    case 't':
+      this.showTransitInfo();
+      break;
+    case ' ':
+      timeController.togglePause();
+      break;
+    case 'arrowright':
+      timeController.setSpeed(timeController.speed * 2);
+      break;
+    case 'arrowleft':
+      timeController.setSpeed(timeController.speed / 2);
+      break;
+    case '1':
+      this.focusOnBody('sun');
+      break;
+    case '2':
+      this.focusOnBody('earth');
+      break;
+    case '3':
+      this.focusOnBody('venus');
+      break;
+    case 'c':
+      timeControlPanel.toggle();
+      break;
     }
   }
 
@@ -549,12 +576,12 @@ class AstronomyApp {
     📚 教育引导系统
     
     可用教程：
-    ${tutorials.map(t => 
-      `  • ${t.title} (${t.difficulty})
+    ${tutorials.map(t =>
+    `  • ${t.title} (${t.difficulty})
         ${t.description}
         预计时间: ${t.estimatedTime}
         步骤数: ${t.steps}`
-    ).join('\n\n')}
+  ).join('\n\n')}
     
     使用说明：
     - 输入 'educationalGuidanceSystem.startTutorial("教程ID")' 开始教程
@@ -566,7 +593,7 @@ class AstronomyApp {
   showParallaxCalculations() {
     const historical1761 = parallaxEngine.calculateHistoricalParallax(1761);
     const historical1769 = parallaxEngine.calculateHistoricalParallax(1769);
-    
+
     console.log(`
     🔬 视差计算结果
     
@@ -643,10 +670,10 @@ class AstronomyApp {
   showTransitInfo() {
     const currentTime = timeController.getTime();
     const transitStatus = transitCalculator.getTransitStatus(currentTime);
-    
+
     if (transitStatus.isTransiting) {
       const distance = transitCalculator.calculateHistoricalAUDistance(transitStatus.year);
-      
+
       console.log(`
       🌟 金星凌日信息：
       当前时间：${currentTime.toUTCString()}
@@ -662,7 +689,7 @@ class AstronomyApp {
       `);
     } else {
       const nextTransit = transitCalculator.getNextTransit(currentTime);
-      
+
       console.log(`
       🌟 金星凌日信息：
       当前时间：${currentTime.toUTCString()}
@@ -709,9 +736,9 @@ class AstronomyApp {
       max-width: 300px;
     `;
     errorDiv.textContent = message;
-    
+
     document.body.appendChild(errorDiv);
-    
+
     setTimeout(() => {
       errorDiv.remove();
     }, 5000);
@@ -728,13 +755,13 @@ class AstronomyApp {
 
   initializePerformanceOptimization() {
     console.log('⚡ Initializing performance optimization...');
-    
+
     // 设置性能优化事件监听
     eventSystem.subscribe('qualityChanged', (data) => {
       console.log(`🎯 Quality changed to: ${data.quality}`);
       this.applyQualitySettings(data.settings);
     });
-    
+
     eventSystem.subscribe('memoryPressure', (data) => {
       console.log('⚠️ Memory pressure detected, applying optimizations...');
       this.handleMemoryPressure();
@@ -752,7 +779,7 @@ class AstronomyApp {
     if (this.sceneManager) {
       this.sceneManager.updateTextureQuality('low');
     }
-    
+
     // 清理非关键资源
     performanceOptimizer.performMemoryCleanup();
   }
@@ -786,23 +813,23 @@ class AstronomyApp {
   performMemoryCleanup() {
     console.log('🧹 Performing manual memory cleanup...');
     performanceOptimizer.performMemoryCleanup();
-    
+
     // 强制垃圾回收（如果浏览器支持）
     if (window.gc) {
       window.gc();
     }
-    
+
     console.log('✅ Memory cleanup completed');
   }
 
   dispose() {
     console.log('🗑️ 正在清理应用资源...');
-    
+
     // 清理性能优化器
     if (performanceOptimizer) {
       performanceOptimizer.dispose();
     }
-    
+
     if (this.sceneManager) {
       this.sceneManager.dispose();
     }
@@ -810,13 +837,13 @@ class AstronomyApp {
     this.celestialBodies.forEach(body => {
       body.dispose();
     });
-    
+
     this.celestialBodies.clear();
-    
+
     if (this.canvas && this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
     }
-    
+
     console.log('✅ 应用已清理');
   }
 }
@@ -826,11 +853,20 @@ let app = null;
 
 // 初始化应用
 async function initApp() {
+  console.log('🎬 Starting initApp...');
+  
   if (app) {
+    console.log('🧹 Disposing existing app...');
     app.dispose();
   }
-  
+
+  console.log('🏗️ Creating new AstronomyApp instance...');
   app = new AstronomyApp();
+  
+  console.log('🚀 Calling app.init()...');
+  await app.init(); // 关键：调用初始化方法
+  
+  console.log('✅ initApp completed');
   return app;
 }
 

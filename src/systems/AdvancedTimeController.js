@@ -17,12 +17,12 @@ export class AdvancedTimeController {
       start: new Date('1750-01-01T00:00:00Z'),
       end: new Date('1780-12-31T23:59:59Z')
     };
-    
+
     // 观测关键时间点
     this.observationEvents = new Map();
     this.contactTimes = new Map();
     this.timeMarkers = [];
-    
+
     // 时间模式
     this.timeModes = {
       REAL_TIME: 'real_time',
@@ -31,35 +31,35 @@ export class AdvancedTimeController {
       CONTACT_MODE: 'contact_mode',
       OBSERVATION_MODE: 'observation_mode'
     };
-    
+
     this.currentMode = this.timeModes.ACCELERATED;
     this.stepSize = 1; // 1 day steps in step mode
     this.contactStep = 1; // Contact event stepping
-    
+
     // 时间标记系统
     this.bookmarks = [];
     this.annotations = new Map();
-    
+
     // 观测事件追踪
     this.observationLog = [];
     this.measurementPoints = [];
-    
+
     // 教学演示模式
     this.demonstrationMode = false;
     this.demoSequence = [];
     this.currentDemoStep = 0;
-    
+
     this.initialize();
   }
 
   async initialize() {
     console.log('🕐 Initializing Advanced Time Controller...');
-    
+
     await this.loadObservationEvents();
     this.setupTimeMarkers();
     this.setupEventHandling();
     this.createDemoSequences();
-    
+
     console.log('✅ Advanced Time Controller initialized');
   }
 
@@ -76,7 +76,7 @@ export class AdvancedTimeController {
       fourth: transit1761.contacts.fourthContact,
       duration: transit1761.duration
     });
-    
+
     // 1769年金星凌日事件
     const transit1769 = VENUS_TRANSIT_EVENTS[1769];
     this.contactTimes.set(1769, {
@@ -86,7 +86,7 @@ export class AdvancedTimeController {
       fourth: transit1769.contacts.fourthContact,
       duration: transit1769.duration
     });
-    
+
     // 预计算关键时间点
     this.generateKeyTimepoints();
   }
@@ -104,7 +104,7 @@ export class AdvancedTimeController {
       { date: new Date('1761-06-06T05:30:00Z'), type: 'midpoint', label: '凌日中心' },
       { date: new Date('1761-06-06T08:37:00Z'), type: 'contact', label: '第三次接触' },
       { date: new Date('1761-06-06T08:57:00Z'), type: 'contact', label: '第四次接触' },
-      
+
       // 1769年标记点
       { date: new Date('1769-05-01T00:00:00Z'), type: 'preparation', label: '观测准备开始' },
       { date: new Date('1769-06-02T12:00:00Z'), type: 'final', label: '最终校准' },
@@ -125,10 +125,27 @@ export class AdvancedTimeController {
       this.checkForTimeEvents(data.time);
       this.updateObservations(data.time);
     });
-    
+
     // 监听凌日状态变化
     eventSystem.subscribe(EventTypes.TRANSIT_STATUS_CHANGED, (data) => {
       this.handleTransitEvent(data);
+    });
+  }
+
+  /**
+   * 处理凌日事件
+   * @param {Object} data - 凌日事件数据
+   */
+  handleTransitEvent(data) {
+    console.log(`🌟 Transit event: ${data.year}年金星凌日 - ${data.phase}`);
+
+    // 记录凌日事件
+    this.addObservation(data.time || new Date(), {
+      type: 'transit_event',
+      year: data.year,
+      phase: data.phase,
+      progress: data.progress || 0,
+      source: 'system_event'
     });
   }
 
@@ -165,12 +182,12 @@ export class AdvancedTimeController {
    */
   generateKeyTimepoints() {
     const keypoints = [];
-    
+
     // 为每个凌日事件生成详细时间点
     [1761, 1769].forEach(year => {
       const transit = this.contactTimes.get(year);
       if (!transit) return;
-      
+
       // 每个接触点前后各添加几个时间点
       const contacts = [
         transit.first,
@@ -178,10 +195,10 @@ export class AdvancedTimeController {
         transit.third,
         transit.fourth
       ];
-      
+
       contacts.forEach((contact, index) => {
         const contactTime = new Date(contact);
-        
+
         // 前后30分钟
         [-30, -15, -5, -1, 0, 1, 5, 15, 30].forEach(minutes => {
           const time = new Date(contactTime.getTime() + minutes * 60000);
@@ -189,14 +206,14 @@ export class AdvancedTimeController {
             date: time,
             type: 'precise',
             label: `${year}年${['一', '二', '三', '四'][index]}次接触 ${minutes >= 0 ? '+' : ''}${minutes}分钟`,
-            year: year,
+            year,
             contact: index + 1,
             offset: minutes
           });
         });
       });
     });
-    
+
     this.keypoints = keypoints;
   }
 
@@ -209,21 +226,21 @@ export class AdvancedTimeController {
       console.warn(`Invalid time mode: ${mode}`);
       return;
     }
-    
+
     this.currentMode = mode;
-    
+
     switch (mode) {
-      case this.timeModes.STEP_BY_STEP:
-        this.stepSize = 1; // 1天步长
-        break;
-      case this.timeModes.CONTACT_MODE:
-        this.contactStep = 1;
-        break;
-      case this.timeModes.OBSERVATION_MODE:
-        this.stepSize = 0.5; // 12小时步长
-        break;
+    case this.timeModes.STEP_BY_STEP:
+      this.stepSize = 1; // 1天步长
+      break;
+    case this.timeModes.CONTACT_MODE:
+      this.contactStep = 1;
+      break;
+    case this.timeModes.OBSERVATION_MODE:
+      this.stepSize = 0.5; // 12小时步长
+      break;
     }
-    
+
     eventSystem.emit('timeModeChanged', { mode });
   }
 
@@ -233,27 +250,30 @@ export class AdvancedTimeController {
    * @param {string} stepType - 步进类型
    */
   stepTime(direction, stepType = 'normal') {
-    // 直接使用全局 timeController
-    const currentTime = window.timeController?.getTime() || new Date();
+    const timeController = window.timeController;
+    if (!timeController) {
+      console.warn('TimeController not available');
+      return;
+    }
+
+    const currentTime = timeController.getTime() || new Date();
     let newTime;
-    
+
     switch (stepType) {
-      case 'contact':
-        newTime = this.stepToNextContact(currentTime, direction);
-        break;
-      case 'keypoint':
-        newTime = this.stepToNextKeypoint(currentTime, direction);
-        break;
-      case 'measurement':
-        newTime = this.stepToNextMeasurement(currentTime, direction);
-        break;
-      default:
-        newTime = new Date(currentTime.getTime() + direction * this.stepSize * 24 * 60 * 60 * 1000);
+    case 'contact':
+      newTime = this.stepToNextContact(currentTime, direction);
+      break;
+    case 'keypoint':
+      newTime = this.stepToNextKeypoint(currentTime, direction);
+      break;
+    case 'measurement':
+      newTime = this.stepToNextMeasurement(currentTime, direction);
+      break;
+    default:
+      newTime = new Date(currentTime.getTime() + direction * this.stepSize * 24 * 60 * 60 * 1000);
     }
-    
-    if (window.timeController) {
-      window.timeController.jumpToTime(newTime);
-    }
+
+    timeController.jumpToTime(newTime);
   }
 
   /**
@@ -261,30 +281,30 @@ export class AdvancedTimeController {
    */
   stepToNextContact(currentTime, direction) {
     const allContacts = [];
-    
+
     // 收集所有接触点
     this.contactTimes.forEach((transit, year) => {
       ['first', 'second', 'third', 'fourth'].forEach(contact => {
         allContacts.push({
           time: new Date(transit[contact]),
-          year: year,
+          year,
           type: contact
         });
       });
     });
-    
+
     // 按时间排序
     allContacts.sort((a, b) => a.time - b.time);
-    
+
     // 找到下一个接触点
-    const currentIndex = allContacts.findIndex(c => 
+    const currentIndex = allContacts.findIndex(c =>
       direction > 0 ? c.time > currentTime : c.time < currentTime
     );
-    
+
     if (currentIndex === -1) {
       return direction > 0 ? allContacts[0].time : allContacts[allContacts.length - 1].time;
     }
-    
+
     const targetIndex = direction > 0 ? currentIndex : currentIndex - 1;
     return allContacts[Math.max(0, Math.min(targetIndex, allContacts.length - 1))].time;
   }
@@ -294,15 +314,15 @@ export class AdvancedTimeController {
    */
   stepToNextKeypoint(currentTime, direction) {
     const keypoints = this.timeMarkers.filter(m => m.type === 'contact' || m.type === 'midpoint');
-    
-    const currentIndex = keypoints.findIndex(k => 
+
+    const currentIndex = keypoints.findIndex(k =>
       direction > 0 ? k.date > currentTime : k.date < currentTime
     );
-    
+
     if (currentIndex === -1) {
       return direction > 0 ? keypoints[0].date : keypoints[keypoints.length - 1].date;
     }
-    
+
     const targetIndex = direction > 0 ? currentIndex : currentIndex - 1;
     return keypoints[Math.max(0, Math.min(targetIndex, keypoints.length - 1))].date;
   }
@@ -314,7 +334,7 @@ export class AdvancedTimeController {
     const measurementInterval = 30; // 30分钟间隔
     const baseTime = Math.floor(currentTime.getTime() / (measurementInterval * 60000)) * (measurementInterval * 60000);
     const newTime = new Date(baseTime + direction * measurementInterval * 60000);
-    
+
     return newTime;
   }
 
@@ -328,14 +348,14 @@ export class AdvancedTimeController {
     const bookmark = {
       id: Date.now(),
       time: new Date(time),
-      label: label,
-      metadata: metadata,
+      label,
+      metadata,
       created: new Date()
     };
-    
+
     this.bookmarks.push(bookmark);
     this.bookmarks.sort((a, b) => a.time - b.time);
-    
+
     eventSystem.emit('bookmarkAdded', { bookmark });
   }
 
@@ -345,8 +365,9 @@ export class AdvancedTimeController {
    */
   jumpToBookmark(bookmarkId) {
     const bookmark = this.bookmarks.find(b => b.id === bookmarkId);
-    if (bookmark && window.timeController) {
-      window.timeController.jumpToTime(bookmark.time);
+    const timeController = window.timeController;
+    if (bookmark && timeController) {
+      timeController.jumpToTime(bookmark.time);
     }
   }
 
@@ -360,27 +381,31 @@ export class AdvancedTimeController {
       console.warn(`Demo sequence '${sequenceName}' not found`);
       return;
     }
-    
+
+    const timeController = window.timeController;
+    if (!timeController) {
+      console.warn('TimeController not available for demo');
+      return;
+    }
+
     this.demonstrationMode = true;
     this.currentDemoStep = 0;
-    
+
     for (const step of sequence.steps) {
       if (!this.demonstrationMode) break;
-      
-      if (window.timeController) {
-        window.timeController.jumpToTime(step.time);
-      }
-      
+
+      timeController.jumpToTime(step.time);
+
       eventSystem.emit('demoStep', {
-        step: step,
+        step,
         index: this.currentDemoStep,
         total: sequence.steps.length
       });
-      
+
       await this.sleep(step.duration);
       this.currentDemoStep++;
     }
-    
+
     this.demonstrationMode = false;
   }
 
@@ -393,6 +418,15 @@ export class AdvancedTimeController {
   }
 
   /**
+   * 延时函数
+   * @param {number} ms - 毫秒
+   * @returns {Promise} 延时promise
+   */
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
    * 添加观测记录
    * @param {Date} time - 观测时间
    * @param {Object} observation - 观测数据
@@ -402,10 +436,10 @@ export class AdvancedTimeController {
       id: Date.now(),
       time: new Date(time),
       julianDate: astronomyCalculator.dateToJulian(time),
-      observation: observation,
+      observation,
       calculated: this.calculateObservation(time, observation)
     };
-    
+
     this.observationLog.push(record);
     eventSystem.emit('observationAdded', { record });
   }
@@ -416,7 +450,7 @@ export class AdvancedTimeController {
   calculateObservation(time, observation) {
     const earthPos = astronomyCalculator.getCelestialPosition('earth', time);
     const venusPos = astronomyCalculator.getCelestialPosition('venus', time);
-    
+
     return {
       angularSeparation: earthPos.angleTo(venusPos),
       relativePosition: {
@@ -433,23 +467,23 @@ export class AdvancedTimeController {
   checkForTimeEvents(currentTime) {
     // 检查是否接近接触点
     const tolerance = 60000; // 1分钟容差
-    
+
     this.contactTimes.forEach((transit, year) => {
       ['first', 'second', 'third', 'fourth'].forEach(contact => {
         const contactTime = new Date(transit[contact]);
         const diff = Math.abs(currentTime.getTime() - contactTime.getTime());
-        
+
         if (diff < tolerance) {
           eventSystem.emit('contactApproaching', {
-            year: year,
-            contact: contact,
+            year,
+            contact,
             time: contactTime,
             distance: diff
           });
         }
       });
     });
-    
+
     // 检查是否到达标记点
     this.timeMarkers.forEach(marker => {
       const diff = Math.abs(currentTime.getTime() - marker.date.getTime());
@@ -465,7 +499,7 @@ export class AdvancedTimeController {
    */
   updateObservations(currentTime) {
     const status = transitCalculator.getTransitStatus(currentTime);
-    
+
     if (status.isTransiting) {
       // 自动记录关键观测点
       if (status.progress > 0 && status.progress < 100) {
@@ -476,7 +510,7 @@ export class AdvancedTimeController {
           progress: status.progress,
           timestamp: currentTime
         };
-        
+
         this.measurementPoints.push(observation);
       }
     }
@@ -509,14 +543,6 @@ export class AdvancedTimeController {
       measurements: this.measurementPoints,
       timestamp: new Date().toISOString()
     };
-  }
-
-  /**
-   * 睡眠函数
-   * @param {number} ms - 毫秒
-   */
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

@@ -73,11 +73,11 @@ export class MathUtils {
   static sphericalDistance(lat1, lon1, lat2, lon2) {
     const dLat = this.degToRad(lat2 - lat1);
     const dLon = this.degToRad(lon2 - lon1);
-    
+
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
               Math.cos(this.degToRad(lat1)) * Math.cos(this.degToRad(lat2)) *
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return this.radToDeg(c);
   }
@@ -92,7 +92,7 @@ export class MathUtils {
   static latLonToVector3(latitude, longitude, radius = 1) {
     const phi = this.degToRad(90 - latitude);
     const theta = this.degToRad(longitude);
-    
+
     return new THREE.Vector3(
       radius * Math.sin(phi) * Math.cos(theta),
       radius * Math.cos(phi),
@@ -107,12 +107,12 @@ export class MathUtils {
    */
   static vector3ToLatLon(vector) {
     const normalized = vector.clone().normalize();
-    
+
     const latitude = 90 - this.radToDeg(Math.acos(normalized.y));
     let longitude = this.radToDeg(Math.atan2(normalized.z, normalized.x));
-    
+
     longitude = this.normalizeAngle(longitude);
-    
+
     return { latitude, longitude };
   }
 
@@ -191,7 +191,7 @@ export class MathUtils {
   static randomVector3(length = 1) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
-    
+
     return new THREE.Vector3(
       length * Math.sin(phi) * Math.cos(theta),
       length * Math.sin(phi) * Math.sin(theta),
@@ -211,12 +211,12 @@ export class MathUtils {
     const tangent = new THREE.Vector3(1, 0, 0);
     const binormal = new THREE.Vector3().crossVectors(normal, tangent).normalize();
     tangent.crossVectors(binormal, normal).normalize();
-    
+
     const point = new THREE.Vector3()
       .addScaledVector(tangent, radius * Math.cos(angle))
       .addScaledVector(binormal, radius * Math.sin(angle))
       .add(center);
-    
+
     return point;
   }
 
@@ -229,15 +229,15 @@ export class MathUtils {
   static bezierCurve(points, t) {
     if (points.length === 0) return new THREE.Vector3();
     if (points.length === 1) return points[0].clone();
-    
+
     const n = points.length - 1;
-    let result = new THREE.Vector3();
-    
+    const result = new THREE.Vector3();
+
     for (let i = 0; i <= n; i++) {
       const coefficient = this.binomialCoefficient(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i);
       result.add(points[i].clone().multiplyScalar(coefficient));
     }
-    
+
     return result;
   }
 
@@ -250,7 +250,7 @@ export class MathUtils {
   static binomialCoefficient(n, k) {
     if (k < 0 || k > n) return 0;
     if (k === 0 || k === n) return 1;
-    
+
     let result = 1;
     for (let i = 1; i <= k; i++) {
       result = result * (n - i + 1) / i;
@@ -281,7 +281,7 @@ export class MathUtils {
     const direction = to.clone().sub(from).normalize();
     const right = new THREE.Vector3().crossVectors(up, direction).normalize();
     const forward = new THREE.Vector3().crossVectors(right, up).normalize();
-    
+
     return Math.atan2(right.dot(direction), forward.dot(direction));
   }
 
@@ -331,15 +331,15 @@ export class MathUtils {
    */
   static integrate(f, a, b, n = 1000) {
     if (n % 2 !== 0) n++;
-    
+
     const h = (b - a) / n;
     let sum = f(a) + f(b);
-    
+
     for (let i = 1; i < n; i++) {
       const x = a + i * h;
       sum += f(x) * (i % 2 === 0 ? 2 : 4);
     }
-    
+
     return sum * h / 3;
   }
 
@@ -354,20 +354,20 @@ export class MathUtils {
    */
   static newtonMethod(f, df, x0, tolerance = 1e-10, maxIterations = 100) {
     let x = x0;
-    
+
     for (let i = 0; i < maxIterations; i++) {
       const fx = f(x);
       const dfx = df(x);
-      
+
       if (Math.abs(dfx) < tolerance) break;
-      
+
       const newX = x - fx / dfx;
-      
+
       if (Math.abs(newX - x) < tolerance) return newX;
-      
+
       x = newX;
     }
-    
+
     return x;
   }
 
@@ -378,12 +378,12 @@ export class MathUtils {
    */
   static seededRandom(seed) {
     let state = 0;
-    
+
     // 简单的哈希函数
     for (let i = 0; i < seed.length; i++) {
       state = ((state << 5) + state + seed.charCodeAt(i)) & 0x7fffffff;
     }
-    
+
     return () => {
       state = (state * 9301 + 49297) & 0x7fffffff;
       return state / 0x7fffffff;

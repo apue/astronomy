@@ -14,17 +14,17 @@ export class HistoricalObservationSystem {
     this.activeObservations = new Set();
     this.parallaxCalculations = new Map();
     this.currentYear = 1761;
-    
+
     this.initialize();
   }
 
   async initialize() {
     console.log('🏛️ Initializing Historical Observation System...');
-    
+
     await this.loadHistoricalData();
     this.setupEventHandling();
     this.calculateParallaxData();
-    
+
     console.log('✅ Historical Observation System initialized');
   }
 
@@ -174,7 +174,7 @@ export class HistoricalObservationSystem {
    */
   calculateParallaxData() {
     const years = [1761, 1769];
-    
+
     years.forEach(year => {
       const points = this.observationPoints.get(year.toString());
       if (!points) return;
@@ -189,14 +189,14 @@ export class HistoricalObservationSystem {
    */
   calculateParallaxBetweenPoints(points, year) {
     const results = [];
-    
+
     for (let i = 0; i < points.length; i++) {
       for (let j = i + 1; j < points.length; j++) {
         const point1 = points[i];
         const point2 = points[j];
-        
+
         const parallax = this.calculateGeometricParallax(point1, point2, year);
-        
+
         results.push({
           pair: `${point1.name} ↔ ${point2.name}`,
           baseline: this.calculateBaseline(point1, point2),
@@ -208,7 +208,7 @@ export class HistoricalObservationSystem {
         });
       }
     }
-    
+
     return results;
   }
 
@@ -217,28 +217,28 @@ export class HistoricalObservationSystem {
    */
   calculateGeometricParallax(point1, point2, year) {
     const transitDate = new Date(year === 1761 ? '1761-06-06T05:30:00Z' : '1769-06-03T05:30:00Z');
-    
+
     // 计算地球到太阳的距离向量
     const earthPos = astronomyCalculator.getCelestialPosition('earth', transitDate);
     const sunPos = astronomyCalculator.getCelestialPosition('sun', transitDate);
     const earthSunDistance = earthPos.distanceTo(sunPos);
-    
+
     // 计算观测点间的基线距离
     const baseline = this.calculateBaseline(point1, point2);
-    
+
     // 计算视差角（简化模型）
     const parallaxAngle = Math.atan(baseline / earthSunDistance);
-    
+
     // 计算天文单位距离
     const actualAU = 149597870.7; // km
     const calculatedAU = baseline / Math.tan(parallaxAngle);
-    
+
     const accuracy = Math.abs((calculatedAU - actualAU) / actualAU) * 100;
-    
+
     return {
       angle: parallaxAngle * (180 / Math.PI) * 3600, // 转换为角秒
-      calculatedAU: calculatedAU,
-      accuracy: accuracy
+      calculatedAU,
+      accuracy
     };
   }
 
@@ -256,7 +256,7 @@ export class HistoricalObservationSystem {
               Math.cos(lat1) * Math.cos(lat2) *
               Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    
+
     return R * c;
   }
 
@@ -265,10 +265,10 @@ export class HistoricalObservationSystem {
    */
   updateActiveObservations(currentTime) {
     this.activeObservations.clear();
-    
+
     const year = currentTime.getUTCFullYear();
     const yearStr = year.toString();
-    
+
     if (this.observationPoints.has(yearStr)) {
       const points = this.observationPoints.get(yearStr);
       points.forEach(point => {
@@ -277,7 +277,7 @@ export class HistoricalObservationSystem {
         }
       });
     }
-    
+
     eventSystem.emit('activeObservationsChanged', {
       points: Array.from(this.activeObservations),
       count: this.activeObservations.size
@@ -290,7 +290,7 @@ export class HistoricalObservationSystem {
   isObservationActive(currentTime, observationPoint) {
     const transitStart = new Date(currentTime.getUTCFullYear(), 5, 3, 2, 0, 0);
     const transitEnd = new Date(currentTime.getUTCFullYear(), 5, 3, 9, 0, 0);
-    
+
     return currentTime >= transitStart && currentTime <= transitEnd;
   }
 
@@ -300,19 +300,19 @@ export class HistoricalObservationSystem {
   calculateCurrentParallax(currentTime) {
     const year = currentTime.getUTCFullYear();
     const yearStr = year.toString();
-    
+
     if (!this.parallaxCalculations.has(yearStr)) return null;
-    
+
     const calculations = this.parallaxCalculations.get(yearStr);
     const activePoints = Array.from(this.activeObservations);
-    
+
     if (activePoints.length < 2) return null;
-    
+
     const bestPair = this.findBestObservationPair(activePoints);
     return {
-      year: year,
+      year,
       pair: bestPair,
-      calculations: calculations.filter(c => 
+      calculations: calculations.filter(c =>
         c.pair.includes(bestPair[0].name) && c.pair.includes(bestPair[1].name)
       )[0]
     };
@@ -324,7 +324,7 @@ export class HistoricalObservationSystem {
   findBestObservationPair(points) {
     let bestPair = null;
     let maxBaseline = 0;
-    
+
     for (let i = 0; i < points.length; i++) {
       for (let j = i + 1; j < points.length; j++) {
         const baseline = this.calculateBaseline(points[i], points[j]);
@@ -334,7 +334,7 @@ export class HistoricalObservationSystem {
         }
       }
     }
-    
+
     return bestPair;
   }
 
@@ -345,7 +345,7 @@ export class HistoricalObservationSystem {
     const year = this.currentYear.toString();
     const points = this.observationPoints.get(year);
     const point = points.find(p => p.id === pointId);
-    
+
     if (point) {
       eventSystem.emit('observationPointSelected', { point });
     }

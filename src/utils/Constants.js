@@ -20,7 +20,7 @@ export const CELESTIAL_BODIES = {
     rotationPeriod: 25.05, // 天（赤道）
     color: 0xFFD700
   },
-  
+
   EARTH: {
     name: 'Earth',
     radius: 6371, // 千米
@@ -28,7 +28,7 @@ export const CELESTIAL_BODIES = {
     rotationPeriod: 0.99726968, // 天（恒星日）
     orbitalPeriod: 365.256363004, // 天
     color: 0x6B93D6,
-    
+
     // 轨道参数（J2000.0历元）
     orbitElements: {
       semiMajorAxis: 1.00000011, // AU
@@ -40,7 +40,7 @@ export const CELESTIAL_BODIES = {
       meanMotion: 0.98560912 // 度/天
     }
   },
-  
+
   VENUS: {
     name: 'Venus',
     radius: 6051.8, // 千米
@@ -48,7 +48,7 @@ export const CELESTIAL_BODIES = {
     rotationPeriod: -243.025, // 天（逆向自转）
     orbitalPeriod: 224.701, // 天
     color: 0xFFC649,
-    
+
     // 轨道参数（J2000.0历元）
     orbitElements: {
       semiMajorAxis: 0.72332102, // AU
@@ -75,7 +75,7 @@ export const VENUS_TRANSIT_EVENTS = {
     duration: 6.6333, // 小时
     type: 'external'
   },
-  
+
   1769: {
     date: new Date('1769-06-03T00:00:00Z'),
     contacts: {
@@ -147,7 +147,7 @@ export const HISTORICAL_OBSERVATIONS = {
       accuracy: 'high'
     }
   ],
-  
+
   1769: [
     {
       name: 'Hudson Bay',

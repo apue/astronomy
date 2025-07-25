@@ -11,7 +11,7 @@ import { AstronomyUtils } from '../utils/AstronomyUtils.js';
 export class Earth extends CelestialBody {
   constructor(options = {}) {
     const earthData = CELESTIAL_BODIES.EARTH;
-    
+
     super('Earth', {
       radius: earthData.radius / SCALE_FACTORS.SIZE_SCALE,
       mass: earthData.mass,
@@ -29,13 +29,13 @@ export class Earth extends CelestialBody {
       },
       ...options
     });
-    
+
     this.type = 'earth';
     this.atmosphereHeight = this.radius * 0.1;
     this.cloudRotationSpeed = 0.001;
     this.cloudAngle = 0;
-    
-    this.initializeEarth();
+
+    // 异步初始化将在外部调用
   }
 
   async initializeEarth() {
@@ -52,48 +52,51 @@ export class Earth extends CelestialBody {
 
   async loadEarthTextures() {
     const textureLoader = new THREE.TextureLoader();
-    
+
+    // 尝试加载主要纹理
     try {
       this.dayTexture = await new Promise((resolve, reject) => {
         textureLoader.load(TEXTURE_PATHS.EARTH.day, resolve, undefined, reject);
       });
-      
-      this.nightTexture = await new Promise((resolve, reject) => {
-        textureLoader.load(TEXTURE_PATHS.EARTH.night, resolve, undefined, reject);
-      });
-      
-      this.cloudTexture = await new Promise((resolve, reject) => {
-        textureLoader.load(TEXTURE_PATHS.EARTH.clouds, resolve, undefined, reject);
-      });
-      
-      this.bumpTexture = await new Promise((resolve, reject) => {
-        textureLoader.load(TEXTURE_PATHS.EARTH.bump, resolve, undefined, reject);
-      });
-      
-      // 优化纹理
-      [this.dayTexture, this.nightTexture, this.cloudTexture, this.bumpTexture]
-        .forEach(texture => {
-          if (texture) {
-            texture.generateMipmaps = true;
-            texture.minFilter = THREE.LinearMipmapLinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            texture.anisotropy = 16;
-          }
-        });
-        
     } catch (error) {
-      console.warn('Failed to load earth textures:', error);
+      console.warn('Failed to load Earth day texture:', error);
     }
+
+    // 尝试加载可选纹理（静默处理失败）
+    const loadOptionalTexture = async (path, name) => {
+      try {
+        return await new Promise((resolve, reject) => {
+          textureLoader.load(path, resolve, undefined, reject);
+        });
+      } catch (error) {
+        console.log(`Optional texture ${name} not available:`, path);
+        return null;
+      }
+    };
+
+    this.nightTexture = await loadOptionalTexture(TEXTURE_PATHS.EARTH.night, 'night');
+    this.cloudTexture = await loadOptionalTexture(TEXTURE_PATHS.EARTH.clouds, 'clouds');
+    this.bumpTexture = await loadOptionalTexture(TEXTURE_PATHS.EARTH.bump, 'bump');
+
+    // 优化已加载的纹理
+    [this.dayTexture, this.nightTexture, this.cloudTexture, this.bumpTexture]
+      .filter(texture => texture !== null)
+      .forEach(texture => {
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.anisotropy = 16;
+      });
   }
 
   createAtmosphere() {
     // 大气层效果
     const atmosphereGeometry = new THREE.SphereGeometry(
-      this.radius + this.atmosphereHeight, 
-      32, 
+      this.radius + this.atmosphereHeight,
+      32,
       16
     );
-    
+
     const atmosphereMaterial = new THREE.MeshPhongMaterial({
       color: 0x87CEEB,
       transparent: true,
@@ -101,24 +104,24 @@ export class Earth extends CelestialBody {
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending
     });
-    
+
     this.atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     this.mesh.add(this.atmosphereMesh);
 
     // 大气辉光
     const glowGeometry = new THREE.SphereGeometry(
-      this.radius + this.atmosphereHeight * 0.5, 
-      32, 
+      this.radius + this.atmosphereHeight * 0.5,
+      32,
       16
     );
-    
+
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0x87CEEB,
       transparent: true,
       opacity: 0.1,
       side: THREE.BackSide
     });
-    
+
     this.atmosphereGlow = new THREE.Mesh(glowGeometry, glowMaterial);
     this.mesh.add(this.atmosphereGlow);
   }
@@ -129,10 +132,10 @@ export class Earth extends CelestialBody {
     // 云层
     const cloudGeometry = new THREE.SphereGeometry(
       this.radius + 0.001, // 略高于地表
-      32, 
+      32,
       16
     );
-    
+
     const cloudMaterial = new THREE.MeshPhongMaterial({
       map: this.cloudTexture,
       transparent: true,
@@ -141,7 +144,7 @@ export class Earth extends CelestialBody {
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
-    
+
     this.cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
     this.mesh.add(this.cloudMesh);
   }
@@ -169,7 +172,7 @@ export class Earth extends CelestialBody {
 
   updateRotation(deltaTime) {
     super.updateRotation(deltaTime);
-    
+
     // 云层旋转（相对地球旋转）
     if (this.cloudMesh) {
       this.cloudAngle += this.cloudRotationSpeed * deltaTime;
@@ -184,7 +187,7 @@ export class Earth extends CelestialBody {
 
   updateLOD(cameraPosition) {
     super.updateLOD(cameraPosition);
-    
+
     // 根据距离调整大气层透明度
     if (this.atmosphereMesh) {
       const distance = this.position.distanceTo(cameraPosition);
@@ -195,15 +198,15 @@ export class Earth extends CelestialBody {
 
   setVisible(visible) {
     super.setVisible(visible);
-    
+
     if (this.atmosphereMesh) {
       this.atmosphereMesh.visible = visible;
     }
-    
+
     if (this.cloudMesh) {
       this.cloudMesh.visible = visible;
     }
-    
+
     if (this.atmosphereGlow) {
       this.atmosphereGlow.visible = visible;
     }
@@ -212,7 +215,7 @@ export class Earth extends CelestialBody {
   getInfo() {
     const baseInfo = super.getInfo();
     const earthData = CELESTIAL_BODIES.EARTH;
-    
+
     return {
       ...baseInfo,
       type: 'Planet',
@@ -229,22 +232,22 @@ export class Earth extends CelestialBody {
 
   dispose() {
     super.dispose();
-    
+
     if (this.atmosphereMesh) {
       this.atmosphereMesh.geometry.dispose();
       this.atmosphereMesh.material.dispose();
     }
-    
+
     if (this.cloudMesh) {
       this.cloudMesh.geometry.dispose();
       this.cloudMesh.material.dispose();
     }
-    
+
     if (this.atmosphereGlow) {
       this.atmosphereGlow.geometry.dispose();
       this.atmosphereGlow.material.dispose();
     }
-    
+
     [this.dayTexture, this.nightTexture, this.cloudTexture, this.bumpTexture]
       .forEach(texture => {
         if (texture) texture.dispose();

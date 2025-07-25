@@ -16,7 +16,7 @@ export class TransitCalculator {
     this.observationPoints = new Map();
     this.currentTransit = null;
     this.calibrationData = new Map();
-    
+
     this.initializeTransitData();
     this.setupEventHandling();
   }
@@ -26,18 +26,18 @@ export class TransitCalculator {
    */
   async initializeTransitData() {
     console.log('🌟 Initializing Venus Transit Calculator...');
-    
+
     // 计算1761年和1769年的凌日事件
     for (const year of [1761, 1769]) {
       const transit = astronomyCalculator.calculateTransitEvents(year);
       this.transitData.set(year, transit);
-      
+
       // 计算历史观测点数据
       const observations = HISTORICAL_OBSERVATIONS[year];
       const calculatedObservations = await this.calculateObservationData(year, observations);
       this.observationPoints.set(year, calculatedObservations);
     }
-    
+
     console.log('✅ Transit data initialized');
   }
 
@@ -59,29 +59,29 @@ export class TransitCalculator {
   async calculateObservationData(year, observations) {
     const transit = this.transitData.get(year);
     if (!transit) return [];
-    
+
     const calculatedObservations = [];
-    
+
     for (const obs of observations) {
       const observerPos = this.getObserverPosition(obs.latitude, obs.longitude, obs.altitude);
       const contactTimes = astronomyCalculator.calculateContactTimes(year, obs);
-      
+
       // 计算每个接触点的视差角
       const parallaxData = await this.calculateParallaxData(
-        observerPos, 
-        transit, 
+        observerPos,
+        transit,
         contactTimes
       );
-      
+
       calculatedObservations.push({
         ...obs,
         observerPosition: observerPos,
-        contactTimes: contactTimes,
-        parallaxData: parallaxData,
+        contactTimes,
+        parallaxData,
         calculatedDistance: this.calculateDistanceFromParallax(parallaxData)
       });
     }
-    
+
     return calculatedObservations;
   }
 
@@ -96,11 +96,11 @@ export class TransitCalculator {
     const R = 6371000 + alt; // 地球半径 + 海拔
     const latRad = lat * Math.PI / 180;
     const lonRad = lon * Math.PI / 180;
-    
+
     const x = R * Math.cos(latRad) * Math.cos(lonRad);
     const y = R * Math.cos(latRad) * Math.sin(lonRad);
     const z = R * Math.sin(latRad);
-    
+
     return new THREE.Vector3(x, y, z);
   }
 
@@ -113,32 +113,32 @@ export class TransitCalculator {
    */
   async calculateParallaxData(observerPos, transit, contactTimes) {
     const parallaxData = {};
-    
+
     for (const [contact, time] of Object.entries(contactTimes.contactTimes)) {
       if (time instanceof Date) {
         const jd = astronomyCalculator.dateToJulian(time);
-        
+
         // 计算太阳和金星位置
         const sunPos = new THREE.Vector3(0, 0, 0); // 日心坐标系
         const earthPos = astronomyCalculator.getCelestialPosition('earth', time);
         const venusPos = astronomyCalculator.getCelestialPosition('venus', time);
-        
+
         // 转换为地心坐标系
         const earthCenter = earthPos.clone().multiplyScalar(149597870.7); // AU to km
         const observerRelative = observerPos.clone();
         const venusRelative = venusPos.clone().multiplyScalar(149597870.7).sub(earthCenter);
-        
+
         // 计算视差角
         const parallaxAngle = astronomyCalculator.calculateParallaxAngle(
           observerRelative,
           sunPos,
           venusRelative
         );
-        
+
         parallaxData[contact] = {
-          time: time,
+          time,
           julianDate: jd,
-          parallaxAngle: parallaxAngle,
+          parallaxAngle,
           angularDistance: earthPos.distanceTo(venusPos),
           position: {
             observer: observerPos.clone(),
@@ -148,7 +148,7 @@ export class TransitCalculator {
         };
       }
     }
-    
+
     return parallaxData;
   }
 
@@ -160,16 +160,16 @@ export class TransitCalculator {
   calculateDistanceFromParallax(parallaxData) {
     const contacts = Object.values(parallaxData);
     if (contacts.length < 2) return 0;
-    
+
     // 使用多个接触点的平均视差
     const parallaxAngles = contacts.map(c => c.parallaxAngle).filter(p => !isNaN(p));
     const avgParallax = parallaxAngles.reduce((sum, p) => sum + p, 0) / parallaxAngles.length;
-    
+
     if (avgParallax <= 0) return 0;
-    
+
     // 使用18世纪观测者的基线距离（简化计算）
     const baseline = 10000; // 假设观测基线（千米）
-    
+
     return baseline / Math.tan(avgParallax);
   }
 
@@ -180,26 +180,26 @@ export class TransitCalculator {
    */
   getTransitStatus(currentTime) {
     const year = currentTime.getFullYear();
-    
+
     for (const transitYear of [1761, 1769]) {
       const transit = this.transitData.get(transitYear);
       if (!transit) continue;
-      
+
       const startTime = astronomyCalculator.julianToDate(transit.contacts.first);
       const endTime = astronomyCalculator.julianToDate(transit.contacts.fourth);
-      
+
       if (currentTime >= startTime && currentTime <= endTime) {
         return {
           isTransiting: true,
           year: transitYear,
-          startTime: startTime,
-          endTime: endTime,
+          startTime,
+          endTime,
           progress: this.calculateTransitProgress(currentTime, startTime, endTime),
           phase: this.getTransitPhase(currentTime, transit)
         };
       }
     }
-    
+
     return {
       isTransiting: false,
       nextTransit: this.getNextTransit(currentTime)
@@ -216,7 +216,7 @@ export class TransitCalculator {
   calculateTransitProgress(currentTime, startTime, endTime) {
     const totalDuration = endTime.getTime() - startTime.getTime();
     const elapsed = currentTime.getTime() - startTime.getTime();
-    
+
     return Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
   }
 
@@ -233,13 +233,13 @@ export class TransitCalculator {
       { name: 'third', time: astronomyCalculator.julianToDate(transit.contacts.third) },
       { name: 'fourth', time: astronomyCalculator.julianToDate(transit.contacts.fourth) }
     ];
-    
+
     for (let i = 0; i < contacts.length - 1; i++) {
       if (currentTime >= contacts[i].time && currentTime < contacts[i + 1].time) {
         return contacts[i].name;
       }
     }
-    
+
     if (currentTime < contacts[0].time) return 'pre-transit';
     return 'post-transit';
   }
@@ -254,13 +254,13 @@ export class TransitCalculator {
       { year: 1761, date: new Date('1761-06-06T02:19:00Z') },
       { year: 1769, date: new Date('1769-06-03T02:19:00Z') }
     ];
-    
+
     for (const transit of nextTransits) {
       if (transit.date > currentTime) {
         return transit;
       }
     }
-    
+
     return null;
   }
 
@@ -281,40 +281,40 @@ export class TransitCalculator {
   calculateHistoricalAUDistance(year) {
     const observations = this.getHistoricalObservations(year);
     if (observations.length < 2) return null;
-    
+
     // 使用历史观测数据计算距离
     const distances = [];
-    
+
     for (let i = 0; i < observations.length; i++) {
       for (let j = i + 1; j < observations.length; j++) {
         const obs1 = observations[i];
         const obs2 = observations[j];
-        
+
         // 计算基线距离
         const baseline = astronomyCalculator.calculateBaselineDistance(obs1, obs2);
-        
+
         // 计算视差差异
         const parallaxDiff = this.calculateParallaxDifference(obs1, obs2);
-        
+
         if (parallaxDiff > 0) {
           const distance = baseline / (2 * Math.tan(parallaxDiff / 2));
           distances.push({
             observers: [obs1.name, obs2.name],
-            baseline: baseline,
+            baseline,
             parallax: parallaxDiff,
-            distance: distance,
+            distance,
             accuracy: Math.abs(distance - AU) / AU * 100
           });
         }
       }
     }
-    
+
     // 计算平均距离
     const validDistances = distances.filter(d => d.distance > 0 && d.distance < 2 * AU);
     const avgDistance = validDistances.reduce((sum, d) => sum + d.distance, 0) / validDistances.length;
-    
+
     return {
-      year: year,
+      year,
       calculatedDistance: avgDistance,
       actualDistance: AU,
       accuracy: Math.abs(avgDistance - AU) / AU * 100,
@@ -336,13 +336,13 @@ export class TransitCalculator {
   calculateParallaxDifference(obs1, obs2) {
     const parallax1 = obs1.parallaxData;
     const parallax2 = obs2.parallaxData;
-    
+
     if (!parallax1 || !parallax2) return 0;
-    
+
     // 使用第二个接触点的视差角
     const p1 = parallax1.second?.parallaxAngle || 0;
     const p2 = parallax2.second?.parallaxAngle || 0;
-    
+
     return Math.abs(p1 - p2);
   }
 
@@ -352,12 +352,12 @@ export class TransitCalculator {
    */
   checkTransitStatus(time) {
     const status = this.getTransitStatus(time);
-    
+
     if (status.isTransiting !== this.currentTransit?.isTransiting) {
       this.currentTransit = status;
-      
+
       eventSystem.emit(EventTypes.TRANSIT_STATUS_CHANGED, {
-        status: status,
+        status,
         timestamp: time
       });
     }
@@ -374,11 +374,11 @@ export class TransitCalculator {
       averageAccuracy: 0,
       bestAccuracy: 100
     };
-    
+
     for (const year of [1761, 1769]) {
       const observations = this.getHistoricalObservations(year);
       const distanceCalc = this.calculateHistoricalAUDistance(year);
-      
+
       if (distanceCalc) {
         stats.totalObservations += observations.length;
         stats.validCalculations += distanceCalc.summary.validPairs;
@@ -386,7 +386,7 @@ export class TransitCalculator {
         stats.bestAccuracy = Math.min(stats.bestAccuracy, distanceCalc.summary.bestAccuracy);
       }
     }
-    
+
     return stats;
   }
 

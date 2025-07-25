@@ -22,7 +22,7 @@ export class AstronomyUtils {
     for (let i = 0; i < maxIterations; i++) {
       const dE = (E - eccentricity * Math.sin(E) - meanAnomaly) / (1 - eccentricity * Math.cos(E));
       E -= dE;
-      
+
       if (Math.abs(dE) < tolerance) break;
     }
 
@@ -167,7 +167,7 @@ export class AstronomyUtils {
   static calculateParallaxAngle(observer1, observer2, target) {
     const vec1 = target.clone().sub(observer1).normalize();
     const vec2 = target.clone().sub(observer2).normalize();
-    
+
     return Math.acos(Math.max(-1, Math.min(1, vec1.dot(vec2))));
   }
 
@@ -183,11 +183,11 @@ export class AstronomyUtils {
   static calculateBaseline(lat1, lon1, lat2, lon2, earthRadius = 6371) {
     const dLat = ThreeMath.degToRad(lat2 - lat1);
     const dLon = ThreeMath.degToRad(lon2 - lon1);
-    
+
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
               Math.cos(ThreeMath.degToRad(lat1)) * Math.cos(ThreeMath.degToRad(lat2)) *
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return earthRadius * c;
   }
@@ -253,7 +253,7 @@ export class AstronomyUtils {
   static calculatePhaseAngle(sunPos, earthPos, planetPos) {
     const sunToPlanet = planetPos.clone().sub(sunPos).normalize();
     const earthToPlanet = planetPos.clone().sub(earthPos).normalize();
-    
+
     return Math.acos(Math.max(-1, Math.min(1, sunToPlanet.dot(earthToPlanet))));
   }
 
@@ -279,14 +279,14 @@ export class AstronomyUtils {
   static checkTransitConditions(sunPos, earthPos, planetPos, sunRadius, planetRadius) {
     const earthToSun = sunPos.clone().sub(earthPos);
     const earthToPlanet = planetPos.clone().sub(earthPos);
-    
+
     // 计算投影距离
     const projection = earthToPlanet.clone().projectOnVector(earthToSun);
     const perpendicular = earthToPlanet.clone().sub(projection);
-    
+
     const distance = perpendicular.length();
     const maxDistance = sunRadius + planetRadius;
-    
+
     return distance < maxDistance;
   }
 
@@ -302,17 +302,17 @@ export class AstronomyUtils {
   static calculateTransitPath(sunPos, earthPos, planetPos, sunRadius, planetRadius) {
     const earthToSun = sunPos.clone().sub(earthPos);
     const earthToPlanet = planetPos.clone().sub(earthPos);
-    
+
     // 计算投影
     const sunDirection = earthToSun.clone().normalize();
     const planetDirection = earthToPlanet.clone().normalize();
-    
+
     const angle = Math.acos(sunDirection.dot(planetDirection));
     const angularSeparation = angle * (180 / Math.PI);
-    
+
     const sunAngularRadius = Math.atan(sunRadius / earthToSun.length()) * (180 / Math.PI);
     const planetAngularRadius = Math.atan(planetRadius / earthToPlanet.length()) * (180 / Math.PI);
-    
+
     return {
       angularSeparation,
       sunAngularRadius,
@@ -355,23 +355,23 @@ export class AstronomyUtils {
   static dateFromJulianDay(julianDay) {
     const jd = Math.floor(julianDay + 0.5);
     const f = julianDay + 0.5 - jd;
-    
-    let a = jd + 32044;
-    let b = Math.floor((4 * a + 3) / 146097);
-    let c = a - Math.floor(146097 * b / 4);
-    let d = Math.floor((4 * c + 3) / 1461);
-    let e = c - Math.floor(1461 * d / 4);
-    let m = Math.floor((5 * e + 2) / 153);
-    
+
+    const a = jd + 32044;
+    const b = Math.floor((4 * a + 3) / 146097);
+    const c = a - Math.floor(146097 * b / 4);
+    const d = Math.floor((4 * c + 3) / 1461);
+    const e = c - Math.floor(1461 * d / 4);
+    const m = Math.floor((5 * e + 2) / 153);
+
     const day = e - Math.floor((153 * m + 2) / 5) + 1;
     const month = m + 3 - 12 * Math.floor(m / 10);
     const year = 100 * b + d - 4800 + Math.floor(m / 10);
-    
+
     const date = new Date(Date.UTC(year, month - 1, day));
     date.setUTCHours(Math.floor(f * 24));
     date.setUTCMinutes(Math.floor((f * 24 * 60) % 60));
     date.setUTCSeconds(Math.floor((f * 24 * 60 * 60) % 60));
-    
+
     return date;
   }
 }

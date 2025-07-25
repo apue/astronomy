@@ -16,13 +16,13 @@ export class TimeControlPanel {
     this.isDragging = false;
     this.panel = null;
     this.controls = {};
-    
+
     this.initialize();
   }
 
   initialize() {
     this.createPanel();
-    this.setupEventListeners();
+    this.bindEvents();
     this.bindToEvents();
   }
 
@@ -167,7 +167,7 @@ export class TimeControlPanel {
       <!-- 拖动手柄 -->
       <div class="drag-handle"></div>
     `;
-    
+
     this.setupStyles();
     this.setupControls();
     this.bindEvents();
@@ -412,7 +412,7 @@ export class TimeControlPanel {
         width: 100%;
       }
     `;
-    
+
     document.head.appendChild(style);
   }
 
@@ -458,21 +458,21 @@ export class TimeControlPanel {
         window.timeController.togglePlayState();
       }
     });
-    
+
     this.controls.stepBack.addEventListener('click', () => {
       advancedTimeController.stepTime(-1);
     });
-    
+
     this.controls.stepForward.addEventListener('click', () => {
       advancedTimeController.stepTime(1);
     });
-    
+
     this.controls.reset.addEventListener('click', () => {
       if (window.timeController) {
         window.timeController.jumpToTime(new Date('1761-06-06T02:19:00Z'));
       }
     });
-    
+
     // 速度控制
     this.controls.speedSlider.addEventListener('input', (e) => {
       const speed = parseFloat(e.target.value);
@@ -481,25 +481,25 @@ export class TimeControlPanel {
       }
       this.controls.speedDisplay.textContent = `${speed}x`;
     });
-    
+
     // 时间模式
     this.controls.timeModeSelect.addEventListener('change', (e) => {
       advancedTimeController.setTimeMode(e.target.value);
     });
-    
+
     // 精确控制
     this.controls.stepContact.addEventListener('click', () => {
       advancedTimeController.stepTime(1, 'contact');
     });
-    
+
     this.controls.stepKeypoint.addEventListener('click', () => {
       advancedTimeController.stepTime(1, 'keypoint');
     });
-    
+
     this.controls.stepMeasurement.addEventListener('click', () => {
       advancedTimeController.stepTime(1, 'measurement');
     });
-    
+
     // 演示控制
     this.controls.startDemo.addEventListener('click', () => {
       const sequence = this.controls.demoSequenceSelect.value;
@@ -507,11 +507,11 @@ export class TimeControlPanel {
         advancedTimeController.startDemoSequence(sequence);
       }
     });
-    
+
     this.controls.stopDemo.addEventListener('click', () => {
       advancedTimeController.stopDemoSequence();
     });
-    
+
     // 书签管理
     this.controls.addBookmark.addEventListener('click', () => {
       const label = this.controls.bookmarkLabel.value.trim() || '书签';
@@ -520,16 +520,16 @@ export class TimeControlPanel {
       }
       this.updateBookmarks();
     });
-    
+
     // 观测记录
     this.controls.recordObservation.addEventListener('click', () => {
       this.recordObservation();
     });
-    
+
     this.controls.exportData.addEventListener('click', () => {
       this.exportData();
     });
-    
+
     // 凌日事件按钮
     this.panel.querySelectorAll('.transit-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -541,12 +541,12 @@ export class TimeControlPanel {
         }
       });
     });
-    
+
     // 面板控制
     this.panel.querySelector('.close-btn').addEventListener('click', () => {
       this.hide();
     });
-    
+
     // 拖动功能
     this.makeDraggable();
   }
@@ -559,19 +559,19 @@ export class TimeControlPanel {
       this.updateTimeDisplay(data);
       this.updateTransitStatus(data.time);
     });
-    
+
     eventSystem.subscribe('timeModeChanged', (data) => {
       this.updateModeDisplay(data.mode);
     });
-    
+
     eventSystem.subscribe('bookmarkAdded', () => {
       this.updateBookmarks();
     });
-    
+
     eventSystem.subscribe('observationAdded', () => {
       this.updateLog();
     });
-    
+
     eventSystem.subscribe('demoStep', (data) => {
       this.updateDemoControls(data);
     });
@@ -584,11 +584,11 @@ export class TimeControlPanel {
     if (this.controls.currentTime) {
       this.controls.currentTime.textContent = data.formattedTime || data.time.toISOString().slice(0, 19);
     }
-    
+
     if (this.controls.julianDate) {
       this.controls.julianDate.textContent = data.julianDate?.toFixed(6) || '--';
     }
-    
+
     if (this.controls.progressFill && this.controls.progressText) {
       const progress = data.progress || 0;
       this.controls.progressFill.style.width = `${progress}%`;
@@ -601,7 +601,7 @@ export class TimeControlPanel {
    */
   updateTransitStatus(currentTime) {
     const status = transitCalculator.getTransitStatus(currentTime);
-    
+
     if (this.controls.transitInfo) {
       if (status.isTransiting) {
         const distance = transitCalculator.calculateHistoricalAUDistance(status.year);
@@ -626,7 +626,7 @@ export class TimeControlPanel {
    */
   updateBookmarks() {
     const bookmarks = advancedTimeController.getBookmarks();
-    
+
     if (this.controls.bookmarkList) {
       if (bookmarks.length === 0) {
         this.controls.bookmarkList.innerHTML = '<div class="bookmark-item">暂无书签</div>';
@@ -637,7 +637,7 @@ export class TimeControlPanel {
             <small>${bookmark.time.toISOString().slice(0, 16)}</small>
           </div>
         `).join('');
-        
+
         // 绑定书签点击事件
         this.controls.bookmarkList.querySelectorAll('.bookmark-item').forEach(item => {
           item.addEventListener('click', (e) => {
@@ -654,7 +654,7 @@ export class TimeControlPanel {
    */
   updateLog() {
     const logs = advancedTimeController.getObservationLog();
-    
+
     if (this.controls.logContainer) {
       if (logs.length === 0) {
         this.controls.logContainer.innerHTML = '<div class="log-item">暂无观测记录</div>';
@@ -674,17 +674,17 @@ export class TimeControlPanel {
    */
   recordObservation() {
     if (!window.timeController) return;
-    
+
     const currentTime = window.timeController.getTime();
     const status = transitCalculator.getTransitStatus(currentTime);
-    
+
     const observation = {
       type: 'manual_observation',
       timestamp: currentTime,
       transitStatus: status,
       notes: `手动记录于 ${currentTime.toISOString()}`
     };
-    
+
     advancedTimeController.addObservation(currentTime, observation);
   }
 
@@ -695,12 +695,12 @@ export class TimeControlPanel {
     const data = advancedTimeController.exportData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = `astronomy_observations_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
-    
+
     URL.revokeObjectURL(url);
   }
 

@@ -12,14 +12,14 @@ export { Venus } from './Venus.js';
 export class CelestialBodyFactory {
   static create(type, options = {}) {
     switch (type.toLowerCase()) {
-      case 'sun':
-        return new Sun(options);
-      case 'earth':
-        return new Earth(options);
-      case 'venus':
-        return new Venus(options);
-      default:
-        throw new Error(`Unknown celestial body type: ${type}`);
+    case 'sun':
+      return new Sun(options);
+    case 'earth':
+      return new Earth(options);
+    case 'venus':
+      return new Venus(options);
+    default:
+      throw new Error(`Unknown celestial body type: ${type}`);
     }
   }
 

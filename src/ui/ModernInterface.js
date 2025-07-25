@@ -34,13 +34,13 @@ export class ModernInterface {
         warning: '#ff9800'
       }
     };
-    
+
     this.breakpoints = {
       mobile: 768,
       tablet: 1024,
       desktop: 1200
     };
-    
+
     this.isInitialized = false;
     this.currentView = 'main';
     this.accessibility = {
@@ -49,18 +49,18 @@ export class ModernInterface {
       reducedMotion: false,
       screenReader: false
     };
-    
+
     this.initialize();
   }
 
   initialize() {
     console.log('🎨 Initializing Modern Interface...');
-    
+
     this.createRootStyles();
     this.setupResponsiveDesign();
     this.setupAccessibility();
     this.setupEventListeners();
-    
+
     this.isInitialized = true;
     console.log('✅ Modern Interface initialized');
   }
@@ -71,17 +71,17 @@ export class ModernInterface {
   createRootStyles() {
     const root = document.documentElement;
     const colors = this.colorScheme[this.theme];
-    
+
     // CSS变量定义
     Object.entries(colors).forEach(([key, value]) => {
       root.style.setProperty(`--color-${key}`, value);
     });
-    
+
     // 响应式变量
     root.style.setProperty('--mobile-breakpoint', `${this.breakpoints.mobile}px`);
     root.style.setProperty('--tablet-breakpoint', `${this.breakpoints.tablet}px`);
     root.style.setProperty('--desktop-breakpoint', `${this.breakpoints.desktop}px`);
-    
+
     // 动画变量
     root.style.setProperty('--transition-fast', '0.15s ease');
     root.style.setProperty('--transition-normal', '0.3s ease');
@@ -94,7 +94,153 @@ export class ModernInterface {
   setupResponsiveDesign() {
     this.createViewportMeta();
     this.createMediaQueries();
-    this.setupMobileGestures();
+    this.setupTouchGestures();
+  }
+
+  /**
+   * 设置触摸手势支持
+   */
+  setupTouchGestures() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let lastTouchEnd = 0;
+
+    // 防止双击缩放
+    document.addEventListener('touchend', (event) => {
+      const now = new Date().getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+
+    // 处理触摸开始
+    document.addEventListener('touchstart', (event) => {
+      if (event.touches.length === 1) {
+        const touch = event.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = new Date().getTime();
+      }
+    }, { passive: true });
+
+    // 处理触摸移动
+    document.addEventListener('touchmove', (event) => {
+      // 在移动设备上防止页面滚动
+      if (event.touches.length === 1) {
+        const touch = event.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
+
+        // 如果移动距离超过阈值，认为是手势操作而非点击
+        if (deltaX > 10 || deltaY > 10) {
+          event.preventDefault();
+        }
+      }
+    }, { passive: false });
+
+    // 处理触摸结束
+    document.addEventListener('touchend', (event) => {
+      if (event.changedTouches.length === 1) {
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        const deltaTime = new Date().getTime() - touchStartTime;
+
+        // 识别滑动手势
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50 && deltaTime < 300) {
+          // 水平滑动
+          if (deltaX > 0) {
+            // 向右滑动
+            this.handleSwipeRight();
+          } else {
+            // 向左滑动
+            this.handleSwipeLeft();
+          }
+        } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50 && deltaTime < 300) {
+          // 垂直滑动
+          if (deltaY > 0) {
+            // 向下滑动
+            this.handleSwipeDown();
+          } else {
+            // 向上滑动
+            this.handleSwipeUp();
+          }
+        }
+      }
+    }, { passive: true });
+
+    // 处理双指缩放手势
+    let initialDistance = 0;
+
+    document.addEventListener('touchstart', (event) => {
+      if (event.touches.length === 2) {
+        const dx = event.touches[0].clientX - event.touches[1].clientX;
+        const dy = event.touches[0].clientY - event.touches[1].clientY;
+        initialDistance = Math.sqrt(dx * dx + dy * dy);
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (event) => {
+      if (event.touches.length === 2) {
+        const dx = event.touches[0].clientX - event.touches[1].clientX;
+        const dy = event.touches[0].clientY - event.touches[1].clientY;
+        const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+        if (initialDistance > 0) {
+          const scale = currentDistance / initialDistance;
+          this.handlePinchZoom(scale);
+        }
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      initialDistance = 0;
+    }, { passive: true });
+  }
+
+  /**
+   * 处理向右滑动
+   */
+  handleSwipeRight() {
+    eventSystem.emit('swipeRight');
+    // 在移动设备上显示侧边栏或返回上一视图
+    this.showNotification('向右滑动 - 显示菜单', 'info', 1500);
+  }
+
+  /**
+   * 处理向左滑动
+   */
+  handleSwipeLeft() {
+    eventSystem.emit('swipeLeft');
+    // 在移动设备上隐藏侧边栏或进入下一视图
+    this.showNotification('向左滑动 - 隐藏菜单', 'info', 1500);
+  }
+
+  /**
+   * 处理向上滑动
+   */
+  handleSwipeUp() {
+    eventSystem.emit('swipeUp');
+    // 在移动设备上显示控制面板
+    this.showNotification('向上滑动 - 显示控制面板', 'info', 1500);
+  }
+
+  /**
+   * 处理向下滑动
+   */
+  handleSwipeDown() {
+    eventSystem.emit('swipeDown');
+    // 在移动设备上隐藏控制面板
+    this.showNotification('向下滑动 - 隐藏控制面板', 'info', 1500);
+  }
+
+  /**
+   * 处理双指缩放
+   */
+  handlePinchZoom(scale) {
+    eventSystem.emit('pinchZoom', { scale });
   }
 
   createViewportMeta() {
@@ -229,18 +375,18 @@ export class ModernInterface {
   setupKeyboardNavigation() {
     document.addEventListener('keydown', (event) => {
       switch (event.key) {
-        case 'Tab':
-          this.handleTabNavigation(event);
-          break;
-        case 'Escape':
-          this.handleEscapeKey(event);
-          break;
-        case 'ArrowUp':
-        case 'ArrowDown':
-        case 'ArrowLeft':
-        case 'ArrowRight':
-          this.handleArrowKeys(event);
-          break;
+      case 'Tab':
+        this.handleTabNavigation(event);
+        break;
+      case 'Escape':
+        this.handleEscapeKey(event);
+        break;
+      case 'ArrowUp':
+      case 'ArrowDown':
+      case 'ArrowLeft':
+      case 'ArrowRight':
+        this.handleArrowKeys(event);
+        break;
       }
     });
   }
@@ -248,7 +394,7 @@ export class ModernInterface {
   setupScreenReaderSupport() {
     // ARIA live regions
     this.createLiveRegions();
-    
+
     // 语义化标记
     this.addSemanticMarkup();
   }
@@ -304,7 +450,7 @@ export class ModernInterface {
         </label>
       </div>
     `;
-    
+
     this.styleAccessibilityPanel(panel);
     document.body.appendChild(panel);
     this.setupAccessibilityControls(panel);
@@ -326,7 +472,7 @@ export class ModernInterface {
       max-height: 80vh;
       overflow-y: auto;
     `;
-    
+
     // 添加CSS样式
     const style = document.createElement('style');
     style.textContent = `
@@ -391,14 +537,14 @@ export class ModernInterface {
   setTheme(theme) {
     this.theme = theme;
     this.createRootStyles();
-    
+
     if (theme === 'high-contrast') {
       document.body.classList.add('high-contrast');
       this.setHighContrast(true);
     } else {
       document.body.classList.remove('high-contrast');
     }
-    
+
     eventSystem.emit('themeChanged', { theme });
   }
 
@@ -454,7 +600,7 @@ export class ModernInterface {
         </button>
       </div>
     `;
-    
+
     this.styleNavigation(nav);
     document.body.appendChild(nav);
     this.setupNavigationControls(nav);
@@ -476,7 +622,7 @@ export class ModernInterface {
       z-index: 100;
       transition: var(--transition-normal);
     `;
-    
+
     const style = document.createElement('style');
     style.textContent = `
       .nav-brand h1 {
@@ -528,15 +674,15 @@ export class ModernInterface {
 
   handleNavigationAction(action) {
     switch (action) {
-      case 'help':
-        this.showHelpModal();
-        break;
-      case 'settings':
-        this.showSettingsModal();
-        break;
-      case 'accessibility':
-        this.toggleAccessibilityPanel();
-        break;
+    case 'help':
+      this.showHelpModal();
+      break;
+    case 'settings':
+      this.showSettingsModal();
+      break;
+    case 'accessibility':
+      this.toggleAccessibilityPanel();
+      break;
     }
   }
 
@@ -583,7 +729,7 @@ export class ModernInterface {
         </div>
       </div>
     `;
-    
+
     this.styleControlPanel(panel);
     document.body.appendChild(panel);
     this.setupControlPanel(panel);
@@ -603,7 +749,7 @@ export class ModernInterface {
       z-index: 99;
       transition: var(--transition-normal);
     `;
-    
+
     const style = document.createElement('style');
     style.textContent = `
       .modern-control-panel {
@@ -693,13 +839,13 @@ export class ModernInterface {
     // 设置折叠功能
     const toggleBtn = panel.querySelector('.panel-toggle');
     const content = panel.querySelector('.panel-content');
-    
+
     toggleBtn.addEventListener('click', () => {
       const isExpanded = content.style.display !== 'none';
       content.style.display = isExpanded ? 'none' : 'block';
       toggleBtn.textContent = isExpanded ? '⋮' : '⋯';
     });
-    
+
     // 设置控制按钮
     panel.querySelectorAll('.control-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -707,15 +853,15 @@ export class ModernInterface {
         this.handleControlAction(action);
       });
     });
-    
+
     // 设置选择框
     const yearSelect = panel.querySelector('#observation-year');
     const telescopeSelect = panel.querySelector('#telescope-type');
-    
+
     yearSelect.addEventListener('change', (e) => {
       eventSystem.emit('observationYearChanged', { year: parseInt(e.target.value) });
     });
-    
+
     telescopeSelect.addEventListener('change', (e) => {
       eventSystem.emit('telescopeTypeChanged', { type: e.target.value });
     });
@@ -723,18 +869,18 @@ export class ModernInterface {
 
   handleControlAction(action) {
     switch (action) {
-      case 'play-pause':
-        eventSystem.emit('timeControlAction', { action: 'toggle' });
-        break;
-      case 'speed-up':
-        eventSystem.emit('timeControlAction', { action: 'speedUp' });
-        break;
-      case 'speed-down':
-        eventSystem.emit('timeControlAction', { action: 'speedDown' });
-        break;
-      case 'reset':
-        eventSystem.emit('timeControlAction', { action: 'reset' });
-        break;
+    case 'play-pause':
+      eventSystem.emit('timeControlAction', { action: 'toggle' });
+      break;
+    case 'speed-up':
+      eventSystem.emit('timeControlAction', { action: 'speedUp' });
+      break;
+    case 'speed-down':
+      eventSystem.emit('timeControlAction', { action: 'speedDown' });
+      break;
+    case 'reset':
+      eventSystem.emit('timeControlAction', { action: 'reset' });
+      break;
     }
   }
 
@@ -777,7 +923,7 @@ export class ModernInterface {
         </div>
       </div>
     `;
-    
+
     this.styleModal(modal);
     document.body.appendChild(modal);
     this.setupModalControls(modal);
@@ -793,7 +939,7 @@ export class ModernInterface {
       z-index: 1001;
       display: none;
     `;
-    
+
     const style = document.createElement('style');
     style.textContent = `
       .modal-backdrop {
@@ -877,14 +1023,14 @@ export class ModernInterface {
   setupModalControls(modal) {
     const closeBtn = modal.querySelector('.modal-close');
     const backdrop = modal.querySelector('.modal-backdrop');
-    
+
     const closeModal = () => {
       modal.style.display = 'none';
     };
-    
+
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
-    
+
     // ESC键关闭
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal.style.display === 'block') {
@@ -937,7 +1083,7 @@ export class ModernInterface {
   handleResize() {
     const isMobile = window.innerWidth <= this.breakpoints.mobile;
     const isTablet = window.innerWidth <= this.breakpoints.tablet;
-    
+
     eventSystem.emit('viewportChanged', {
       isMobile,
       isTablet,
@@ -968,7 +1114,7 @@ export class ModernInterface {
         <div class="loader-text">正在加载天体...</div>
       </div>
     `;
-    
+
     const style = document.createElement('style');
     style.textContent = `
       .modern-loader {
@@ -1042,7 +1188,7 @@ export class ModernInterface {
       }
     `;
     document.head.appendChild(style);
-    
+
     return loader;
   }
 
@@ -1067,13 +1213,13 @@ export class ModernInterface {
     notification.textContent = message;
     notification.setAttribute('role', 'status');
     notification.setAttribute('aria-live', 'polite');
-    
+
     this.styleNotification(notification);
     document.body.appendChild(notification);
-    
+
     // 动画进入
     setTimeout(() => notification.classList.add('show'), 100);
-    
+
     // 自动移除
     setTimeout(() => {
       notification.classList.remove('show');
@@ -1094,7 +1240,7 @@ export class ModernInterface {
       transform: translateX(100%);
       transition: transform 0.3s ease;
     `;
-    
+
     const style = document.createElement('style');
     style.textContent = `
       .notification-info { background: var(--color-accent); }

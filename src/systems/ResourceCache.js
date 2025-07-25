@@ -16,7 +16,7 @@ export class ResourceCache {
       evictions: 0,
       totalRequests: 0
     };
-    
+
     this.config = {
       maxSize: 100, // 最大缓存项目数
       maxMemory: 512 * 1024 * 1024, // 512MB内存限制
@@ -25,27 +25,27 @@ export class ResourceCache {
       compressionEnabled: true,
       preloadEnabled: true
     };
-    
+
     this.memoryUsage = 0;
     this.cacheStrategy = 'lru'; // lru, lfu, fifo
-    
+
     this.initialize();
   }
 
   initialize() {
     console.log('📦 Initializing Resource Cache System...');
-    
+
     // 设置定期清理
     this.setupPeriodicCleanup();
-    
+
     // 监听内存压力
     this.setupMemoryPressureHandling();
-    
+
     // 预加载关键资源
     if (this.config.preloadEnabled) {
       this.preloadCriticalResources();
     }
-    
+
     console.log('✅ Resource Cache System initialized');
   }
 
@@ -55,14 +55,14 @@ export class ResourceCache {
   lruEvict() {
     let oldestKey = null;
     let oldestTime = Infinity;
-    
+
     for (const [key, metadata] of this.metadata) {
       if (metadata.lastAccessed < oldestTime) {
         oldestTime = metadata.lastAccessed;
         oldestKey = key;
       }
     }
-    
+
     if (oldestKey) {
       this.evict(oldestKey);
     }
@@ -74,14 +74,14 @@ export class ResourceCache {
   lfuEvict() {
     let leastUsedKey = null;
     let minFrequency = Infinity;
-    
+
     for (const [key, metadata] of this.metadata) {
       if (metadata.accessCount < minFrequency) {
         minFrequency = metadata.accessCount;
         leastUsedKey = key;
       }
     }
-    
+
     if (leastUsedKey) {
       this.evict(leastUsedKey);
     }
@@ -93,14 +93,14 @@ export class ResourceCache {
   fifoEvict() {
     let oldestKey = null;
     let oldestTime = Infinity;
-    
+
     for (const [key, metadata] of this.metadata) {
       if (metadata.created < oldestTime) {
         oldestTime = metadata.created;
         oldestKey = key;
       }
     }
-    
+
     if (oldestKey) {
       this.evict(oldestKey);
     }
@@ -114,7 +114,7 @@ export class ResourceCache {
     setInterval(() => {
       this.cleanupExpired();
     }, 30000);
-    
+
     // 每5分钟执行完整清理
     setInterval(() => {
       this.performFullCleanup();
@@ -129,7 +129,7 @@ export class ResourceCache {
     window.addEventListener('memorypressure', () => {
       this.handleMemoryPressure();
     });
-    
+
     // 监听性能事件
     eventSystem.subscribe('performanceMetrics', (metrics) => {
       if (metrics.memoryUsage > this.config.maxMemory * 0.8) {
@@ -143,13 +143,13 @@ export class ResourceCache {
    */
   handleMemoryPressure() {
     console.log('⚠️ Memory pressure detected, aggressive cleanup...');
-    
+
     // 立即清理非关键资源
     this.cleanupNonCritical();
-    
+
     // 降低TTL
     this.reduceTTLs();
-    
+
     // 触发事件
     eventSystem.emit('cachePressure', {
       memoryUsage: this.memoryUsage,
@@ -167,23 +167,23 @@ export class ResourceCache {
       compress: options.compress !== false && this.config.compressionEnabled,
       metadata: options.metadata || {}
     };
-    
+
     this.stats.totalRequests++;
-    
+
     // 计算资源大小
     const size = this.calculateSize(value);
-    
+
     // 检查内存限制
     if (this.memoryUsage + size > this.config.maxMemory) {
       this.evictToMakeRoom(size);
     }
-    
+
     // 压缩数据（如果需要）
     let cachedValue = value;
     if (config.compress) {
       cachedValue = await this.compress(value);
     }
-    
+
     // 存储数据和元数据
     this.cache.set(key, cachedValue);
     this.metadata.set(key, {
@@ -195,9 +195,9 @@ export class ResourceCache {
       priority: config.priority,
       ...config.metadata
     });
-    
+
     this.memoryUsage += size;
-    
+
     // 触发事件
     eventSystem.emit('cacheSet', { key, size, priority: config.priority });
   }
@@ -207,35 +207,35 @@ export class ResourceCache {
    */
   async get(key) {
     const metadata = this.metadata.get(key);
-    
+
     if (!metadata) {
       this.stats.misses++;
       return null;
     }
-    
+
     // 检查是否过期
     if (this.isExpired(key)) {
       this.evict(key);
       this.stats.misses++;
       return null;
     }
-    
+
     // 更新访问统计
     metadata.lastAccessed = Date.now();
     metadata.accessCount++;
-    
+
     this.stats.hits++;
-    
+
     let value = this.cache.get(key);
-    
+
     // 解压缩数据（如果需要）
     if (metadata.compressed) {
       value = await this.decompress(value);
     }
-    
+
     // 触发事件
     eventSystem.emit('cacheGet', { key, hit: true });
-    
+
     return value;
   }
 
@@ -263,14 +263,14 @@ export class ResourceCache {
   cleanupExpired() {
     const now = Date.now();
     let cleaned = 0;
-    
+
     for (const [key, metadata] of this.metadata) {
       if (now - metadata.created > metadata.ttl) {
         this.evict(key);
         cleaned++;
       }
     }
-    
+
     if (cleaned > 0) {
       console.log(`🧹 Cleaned ${cleaned} expired cache entries`);
     }
@@ -281,12 +281,12 @@ export class ResourceCache {
    */
   performFullCleanup() {
     const beforeSize = this.cache.size;
-    
+
     this.cleanupExpired();
-    
+
     // 清理低优先级资源
     this.cleanupLowPriority();
-    
+
     const afterSize = this.cache.size;
     console.log(`🧹 Full cleanup: ${beforeSize - afterSize} entries removed`);
   }
@@ -296,13 +296,13 @@ export class ResourceCache {
    */
   cleanupNonCritical() {
     const nonCritical = [];
-    
+
     for (const [key, metadata] of this.metadata) {
       if (metadata.priority === 'low' || metadata.priority === 'normal') {
         nonCritical.push(key);
       }
     }
-    
+
     nonCritical.forEach(key => this.evict(key));
     console.log(`🧹 Cleaned ${nonCritical.length} non-critical resources`);
   }
@@ -312,13 +312,13 @@ export class ResourceCache {
    */
   cleanupLowPriority() {
     const lowPriority = [];
-    
+
     for (const [key, metadata] of this.metadata) {
       if (metadata.priority === 'low') {
         lowPriority.push(key);
       }
     }
-    
+
     lowPriority.forEach(key => this.evict(key));
   }
 
@@ -367,7 +367,7 @@ export class ResourceCache {
         ttl: this.config.criticalTTL
       }
     ];
-    
+
     for (const resource of criticalResources) {
       try {
         const response = await fetch(resource.url);
@@ -381,7 +381,7 @@ export class ResourceCache {
         console.warn(`Failed to preload ${resource.key}:`, error);
       }
     }
-    
+
     console.log('🚀 Critical resources preloaded');
   }
 
@@ -389,10 +389,10 @@ export class ResourceCache {
    * 批量缓存资源
    */
   async setBatch(resources) {
-    const promises = resources.map(resource => 
+    const promises = resources.map(resource =>
       this.set(resource.key, resource.data, resource.options)
     );
-    
+
     return Promise.allSettled(promises);
   }
 
@@ -400,9 +400,9 @@ export class ResourceCache {
    * 获取缓存统计
    */
   getStats() {
-    const hitRate = this.stats.totalRequests > 0 ? 
+    const hitRate = this.stats.totalRequests > 0 ?
       (this.stats.hits / this.stats.totalRequests * 100).toFixed(2) : 0;
-    
+
     return {
       ...this.stats,
       hitRate: `${hitRate}%`,
@@ -420,7 +420,7 @@ export class ResourceCache {
     this.metadata.clear();
     this.memoryUsage = 0;
     this.stats.evictions += this.cache.size;
-    
+
     console.log('🗑️ Cache cleared');
   }
 
@@ -464,7 +464,7 @@ export class ResourceCache {
   isExpired(key) {
     const metadata = this.metadata.get(key);
     if (!metadata) return true;
-    
+
     return Date.now() - metadata.created > metadata.ttl;
   }
 
@@ -477,10 +477,10 @@ export class ResourceCache {
       this.memoryUsage -= metadata.size;
       this.stats.evictions++;
     }
-    
+
     this.cache.delete(key);
     this.metadata.delete(key);
-    
+
     eventSystem.emit('cacheEvicted', { key });
   }
 
@@ -489,20 +489,20 @@ export class ResourceCache {
    */
   evictToMakeRoom(requiredSize) {
     let freed = 0;
-    
+
     while (freed < requiredSize && this.cache.size > 0) {
       switch (this.cacheStrategy) {
-        case 'lru':
-          this.lruEvict();
-          break;
-        case 'lfu':
-          this.lfuEvict();
-          break;
-        case 'fifo':
-          this.fifoEvict();
-          break;
+      case 'lru':
+        this.lruEvict();
+        break;
+      case 'lfu':
+        this.lfuEvict();
+        break;
+      case 'fifo':
+        this.fifoEvict();
+        break;
       }
-      
+
       // 防止无限循环
       freed += 1024 * 1024; // 假设每次驱逐1MB
     }
@@ -520,7 +520,7 @@ export class ResourceCache {
    */
   getCacheContents() {
     const contents = [];
-    
+
     for (const [key, metadata] of this.metadata) {
       contents.push({
         key,
@@ -531,7 +531,7 @@ export class ResourceCache {
         age: Date.now() - metadata.created
       });
     }
-    
+
     return contents.sort((a, b) => b.size - a.size);
   }
 

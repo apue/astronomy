@@ -11,11 +11,11 @@ export class TimeController {
     this.keyDates = {
       venusTransit1761: new Date('1761-06-06T00:00:00Z'),
       venusTransit1769: new Date('1769-06-03T00:00:00Z'),
-      
+
       // 观测时间范围（前后各延长2个月）
       startRange1761: new Date('1761-04-01T00:00:00Z'),
       endRange1761: new Date('1761-08-31T23:59:59Z'),
-      
+
       startRange1769: new Date('1769-04-01T00:00:00Z'),
       endRange1769: new Date('1769-08-31T23:59:59Z')
     };
@@ -24,18 +24,18 @@ export class TimeController {
     this.startTime = this.keyDates.startRange1761;
     this.endTime = this.keyDates.endRange1761;
     this.currentTime = new Date(this.startTime);
-    
+
     // 播放控制
     this.isPlaying = false;
     this.speed = 1; // 1天/秒
     this.maxSpeed = 1000; // 最大1000天/秒
     this.minSpeed = 0.01; // 最小0.01天/秒
-    
+
     // 动画控制
     this.animationId = null;
     this.lastUpdateTime = 0;
     this.frameInterval = 16.67; // 60fps
-    
+
     // 预设时间点
     this.presets = [
       { name: '1761凌日开始', date: new Date('1761-06-06T02:00:00Z'), type: 'transit' },
@@ -80,7 +80,7 @@ export class TimeController {
    */
   setTime(time) {
     const newTime = new Date(Math.max(this.startTime, Math.min(time, this.endTime)));
-    
+
     if (newTime.getTime() !== this.currentTime.getTime()) {
       this.currentTime = newTime;
       this.notifyTimeChanged();
@@ -95,14 +95,14 @@ export class TimeController {
   setTimeRange(start, end) {
     this.startTime = new Date(start);
     this.endTime = new Date(end);
-    
+
     // 确保当前时间在范围内
     if (this.currentTime < this.startTime) {
       this.currentTime = new Date(this.startTime);
     } else if (this.currentTime > this.endTime) {
       this.currentTime = new Date(this.endTime);
     }
-    
+
     this.notifyTimeChanged();
   }
 
@@ -112,15 +112,15 @@ export class TimeController {
    */
   setPlayState(isPlaying) {
     if (this.isPlaying === isPlaying) return;
-    
+
     this.isPlaying = isPlaying;
-    
+
     if (this.isPlaying) {
       this.startAnimation();
     } else {
       this.stopAnimation();
     }
-    
+
     this.notifyPlayStateChanged();
   }
 
@@ -146,7 +146,7 @@ export class TimeController {
   increaseSpeed() {
     const speeds = [0.01, 0.1, 1, 10, 100, 1000];
     const currentIndex = speeds.findIndex(s => s >= this.speed);
-    
+
     if (currentIndex < speeds.length - 1) {
       this.setSpeed(speeds[currentIndex + 1]);
     }
@@ -158,7 +158,7 @@ export class TimeController {
   decreaseSpeed() {
     const speeds = [0.01, 0.1, 1, 10, 100, 1000];
     const currentIndex = speeds.findIndex(s => s > this.speed);
-    
+
     if (currentIndex > 0) {
       this.setSpeed(speeds[Math.max(0, currentIndex - 1)]);
     }
@@ -189,7 +189,7 @@ export class TimeController {
    */
   startAnimation() {
     if (this.animationId) return;
-    
+
     this.lastUpdateTime = performance.now();
     this.animate();
   }
@@ -212,7 +212,7 @@ export class TimeController {
 
     const currentTime = performance.now();
     const deltaTime = (currentTime - this.lastUpdateTime) / 1000; // 转换为秒
-    
+
     this.lastUpdateTime = currentTime;
 
     // 计算时间增量（毫秒）
@@ -231,7 +231,7 @@ export class TimeController {
     }
 
     this.notifyTimeChanged();
-    
+
     this.animationId = requestAnimationFrame(() => this.animate());
   }
 

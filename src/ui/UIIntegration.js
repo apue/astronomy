@@ -17,7 +17,7 @@ export class UIIntegration {
     this.currentSpeed = 100;
     this.currentYear = 1761;
     this.currentTelescope = '18th_century_refractor';
-    
+
     this.initialize();
   }
 
@@ -26,7 +26,7 @@ export class UIIntegration {
     this.setupEventListeners();
     this.setupUIControls();
     this.syncUIState();
-    
+
     this.isInitialized = true;
     console.log('✅ UI Integration initialized');
   }
@@ -98,30 +98,30 @@ export class UIIntegration {
 
   handleTimeControlAction(action) {
     switch (action) {
-      case 'toggle':
-        timeController.togglePause();
-        modernInterface.showNotification(
-          timeController.isPaused ? '时间已暂停' : '时间继续运行',
-          'info'
-        );
-        break;
-      case 'speedUp':
-        this.currentSpeed = Math.min(this.currentSpeed * 2, 10000);
-        timeController.setSpeed(this.currentSpeed);
-        this.updateSpeedDisplay();
-        break;
-      case 'speedDown':
-        this.currentSpeed = Math.max(this.currentSpeed / 2, 1);
-        timeController.setSpeed(this.currentSpeed);
-        this.updateSpeedDisplay();
-        break;
-      case 'reset':
-        this.currentSpeed = 100;
-        timeController.setSpeed(this.currentSpeed);
-        const transitDate = new Date('1761-06-06T05:00:00Z');
-        timeController.setTime(transitDate);
-        modernInterface.showNotification('已重置到1761年金星凌日', 'success');
-        break;
+    case 'toggle':
+      timeController.togglePause();
+      modernInterface.showNotification(
+        timeController.isPaused ? '时间已暂停' : '时间继续运行',
+        'info'
+      );
+      break;
+    case 'speedUp':
+      this.currentSpeed = Math.min(this.currentSpeed * 2, 10000);
+      timeController.setSpeed(this.currentSpeed);
+      this.updateSpeedDisplay();
+      break;
+    case 'speedDown':
+      this.currentSpeed = Math.max(this.currentSpeed / 2, 1);
+      timeController.setSpeed(this.currentSpeed);
+      this.updateSpeedDisplay();
+      break;
+    case 'reset':
+      this.currentSpeed = 100;
+      timeController.setSpeed(this.currentSpeed);
+      const transitDate = new Date('1761-06-06T05:00:00Z');
+      timeController.setTime(transitDate);
+      modernInterface.showNotification('已重置到1761年金星凌日', 'success');
+      break;
     }
   }
 
@@ -138,24 +138,24 @@ export class UIIntegration {
   handleObservationYearChange(year) {
     this.currentYear = year;
     historicalObservationSystem.setActiveYear(year);
-    
+
     modernInterface.showNotification(
       `已切换到${year}年金星凌日观测`,
       'success'
     );
-    
+
     this.updateYearDisplay();
   }
 
   handleTelescopeTypeChange(type) {
     this.currentTelescope = type;
-    
+
     const telescopeNames = {
       '18th_century_refractor': '18世纪折射望远镜',
       'quadrant_telescope': '象限仪望远镜',
       'achromatic_refractor': '消色差折射望远镜'
     };
-    
+
     modernInterface.showNotification(
       `已选择: ${telescopeNames[type] || type}`,
       'info'
@@ -281,13 +281,13 @@ export class UIIntegration {
   updateCalculationDisplay(data) {
     const panel = document.getElementById('calculation-panel');
     if (panel && panel.style.display !== 'none') {
-      document.getElementById('current-au').textContent = 
+      document.getElementById('current-au').textContent =
         data.calculatedAU ? data.calculatedAU.toLocaleString() : '-';
-      document.getElementById('calculation-accuracy').textContent = 
+      document.getElementById('calculation-accuracy').textContent =
         data.error ? data.error.toFixed(2) : '-';
-      document.getElementById('observation-count').textContent = 
+      document.getElementById('observation-count').textContent =
         data.observationCount || '-';
-      document.getElementById('baseline-length').textContent = 
+      document.getElementById('baseline-length').textContent =
         data.baseline ? data.baseline.toLocaleString() : '-';
     }
   }
@@ -439,11 +439,11 @@ export class UIIntegration {
   populateTutorialList() {
     const tutorials = educationalGuidanceSystem.getAvailableTutorials();
     const listContainer = document.getElementById('tutorial-list');
-    
+
     if (!listContainer) return;
 
     listContainer.innerHTML = '';
-    
+
     tutorials.forEach(tutorial => {
       const item = document.createElement('div');
       item.className = 'tutorial-item';
@@ -453,12 +453,12 @@ export class UIIntegration {
         <span class="difficulty ${tutorial.difficulty}">${tutorial.difficulty}</span>
         <small>预计时间: ${tutorial.estimatedTime}</small>
       `;
-      
+
       item.addEventListener('click', () => {
         educationalGuidanceSystem.startTutorial(tutorial.id);
         document.getElementById('tutorial-selector').style.display = 'none';
       });
-      
+
       listContainer.appendChild(item);
     });
   }

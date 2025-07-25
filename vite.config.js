@@ -32,9 +32,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true,
-    open: true,
-    cors: true
+    host: '127.0.0.1',
+    open: false,
+    cors: true,
+    strictPort: true
   },
   optimizeDeps: {
     include: ['three', '@tweenjs/tween.js']

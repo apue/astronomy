@@ -24,13 +24,13 @@ export class OrbitalMechanics {
     let delta = 1;
     const maxIterations = 100;
     let iterations = 0;
-    
+
     while (Math.abs(delta) > 1e-12 && iterations < maxIterations) {
       delta = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
       E -= delta;
       iterations++;
     }
-    
+
     return E;
   }
 
@@ -63,27 +63,27 @@ export class OrbitalMechanics {
       meanMotion,
       epoch
     } = elements;
-    
+
     // 计算经过的时间（天）
     const deltaT = jd - epoch;
-    
+
     // 计算平近点角
     const M = (meanAnomaly0 + meanMotion * deltaT) % (2 * Math.PI);
-    
+
     // 解决开普勒方程
     const E = this.solveKeplerEquation(M, eccentricity);
-    
+
     // 计算真近点角
     const v = this.calculateTrueAnomaly(E, eccentricity);
-    
+
     // 计算距离
     const r = semiMajorAxis * (1 - eccentricity * Math.cos(E));
-    
+
     // 计算轨道平面坐标
     const x_orb = r * Math.cos(v);
     const y_orb = r * Math.sin(v);
     const z_orb = 0;
-    
+
     // 转换为日心赤道坐标
     const position = this.orbitalToEquatorial(
       x_orb, y_orb, z_orb,
@@ -91,15 +91,15 @@ export class OrbitalMechanics {
       longitudeOfAscendingNode,
       argumentOfPeriapsis
     );
-    
+
     // 计算速度
     const velocity = this.calculateOrbitalVelocity(
       elements, E, v, r
     );
-    
+
     return {
-      position: position,
-      velocity: velocity,
+      position,
+      velocity,
       trueAnomaly: v,
       eccentricAnomaly: E,
       distance: r
@@ -124,14 +124,14 @@ export class OrbitalMechanics {
     const sin_i = Math.sin(i);
     const cos_ω = Math.cos(ω);
     const sin_ω = Math.sin(ω);
-    
+
     // 组合旋转矩阵
-    const x_eq = x * (cos_Ω * cos_ω - sin_Ω * sin_ω * cos_i) - 
+    const x_eq = x * (cos_Ω * cos_ω - sin_Ω * sin_ω * cos_i) -
                  y * (cos_Ω * sin_ω + sin_Ω * cos_ω * cos_i);
-    const y_eq = x * (sin_Ω * cos_ω + cos_Ω * sin_ω * cos_i) + 
+    const y_eq = x * (sin_Ω * cos_ω + cos_Ω * sin_ω * cos_i) +
                  y * (-sin_Ω * sin_ω + cos_Ω * cos_ω * cos_i);
     const z_eq = x * (sin_ω * sin_i) + y * (cos_ω * sin_i);
-    
+
     return new THREE.Vector3(x_eq, y_eq, z_eq);
   }
 
@@ -151,22 +151,22 @@ export class OrbitalMechanics {
       longitudeOfAscendingNode,
       argumentOfPeriapsis
     } = elements;
-    
+
     // 计算标准引力参数
     const mu = this.G * 1.989e30; // 太阳质量
-    
-    // 计算速度大小
-    const v_mag = Math.sqrt(mu * (2 / r - 1 / semiMajorAxis));
-    
+
+    // 计算速度大小 (unused for now)
+    // const v_mag = Math.sqrt(mu * (2 / r - 1 / semiMajorAxis));
+
     // 计算速度方向分量
     const cos_E = Math.cos(E);
     const sin_E = Math.sin(E);
-    
+
     // 轨道平面速度分量
     const vx_orb = -Math.sqrt(mu / (semiMajorAxis * (1 - eccentricity * eccentricity))) * sin_E;
     const vy_orb = Math.sqrt(mu / (semiMajorAxis * (1 - eccentricity * eccentricity))) * (cos_E - eccentricity);
     const vz_orb = 0;
-    
+
     // 转换为赤道坐标系
     const velocity = this.orbitalToEquatorial(
       vx_orb, vy_orb, vz_orb,
@@ -174,7 +174,7 @@ export class OrbitalMechanics {
       longitudeOfAscendingNode,
       argumentOfPeriapsis
     );
-    
+
     return velocity;
   }
 
@@ -188,27 +188,27 @@ export class OrbitalMechanics {
   calculateTransitCondition(earthElements, venusElements, jd) {
     const earth = this.calculateOrbitalPosition(earthElements, jd);
     const venus = this.calculateOrbitalPosition(venusElements, jd);
-    
+
     // 计算金星相对于地球的视位置
     const relativePos = venus.position.clone().sub(earth.position);
-    
+
     // 计算与太阳的角距离
     const sunDirection = earth.position.clone().normalize();
     const angularDistance = Math.acos(relativePos.dot(sunDirection) / relativePos.length());
-    
+
     // 计算太阳角半径
     const solarRadius = 0.004652; // 太阳角半径（弧度）
-    
+
     // 判断是否在凌日
     const isTransiting = angularDistance < solarRadius;
-    
+
     // 计算凌日深度
     const transitDepth = isTransiting ? 1 - (angularDistance / solarRadius) : 0;
-    
+
     return {
-      isTransiting: isTransiting,
-      angularDistance: angularDistance,
-      transitDepth: transitDepth,
+      isTransiting,
+      angularDistance,
+      transitDepth,
       contactTime: isTransiting ? jd : null,
       earthPosition: earth.position,
       venusPosition: venus.position
@@ -226,18 +226,18 @@ export class OrbitalMechanics {
   predictTransitTimes(earthElements, venusElements, startJD, endJD) {
     const transitTimes = [];
     const dayStep = 0.5; // 半天步长
-    
+
     let jd = startJD;
     let wasTransiting = false;
-    
+
     while (jd < endJD) {
       const condition = this.calculateTransitCondition(earthElements, venusElements, jd);
-      
+
       if (condition.isTransiting && !wasTransiting) {
         // 找到凌日开始
         const startTime = this.refineTransitTime(earthElements, venusElements, jd, 1);
         const endTime = this.findTransitEnd(earthElements, venusElements, jd);
-        
+
         transitTimes.push({
           start: startTime,
           end: endTime,
@@ -245,11 +245,11 @@ export class OrbitalMechanics {
           planet: 'venus'
         });
       }
-      
+
       wasTransiting = condition.isTransiting;
       jd += dayStep;
     }
-    
+
     return transitTimes;
   }
 
@@ -264,17 +264,17 @@ export class OrbitalMechanics {
   refineTransitTime(earthElements, venusElements, jd, direction) {
     const step = direction * 0.001; // 约1.44分钟
     let refinedJD = jd;
-    
+
     for (let i = 0; i < 10; i++) {
       const condition = this.calculateTransitCondition(earthElements, venusElements, refinedJD);
-      
+
       if (!condition.isTransiting) {
         break;
       }
-      
+
       refinedJD += step;
     }
-    
+
     return refinedJD - step;
   }
 
@@ -299,11 +299,11 @@ export class OrbitalMechanics {
     const AU = 1.496e11; // 天文单位（米）
     const G = this.G;
     const Msun = 1.989e30; // 太阳质量（千克）
-    
+
     // 开普勒第三定律：T² = 4π²a³ / GM
     const a = semiMajorAxis * AU;
     const period = 2 * Math.PI * Math.sqrt(a * a * a / (G * centralMass * Msun));
-    
+
     return period / (24 * 3600); // 转换为天
   }
 
@@ -326,34 +326,34 @@ export class OrbitalMechanics {
    */
   updateOrbitalElements(elements, jd, rates = {}) {
     const deltaT = jd - elements.epoch;
-    
+
     const updatedElements = { ...elements };
-    
+
     // 应用长期变化率
     if (rates.semiMajorAxis) {
       updatedElements.semiMajorAxis += rates.semiMajorAxis * deltaT / 36525;
     }
-    
+
     if (rates.eccentricity) {
       updatedElements.eccentricity += rates.eccentricity * deltaT / 36525;
     }
-    
+
     if (rates.inclination) {
       updatedElements.inclination += rates.inclination * deltaT / 36525 * MATH_CONSTANTS.DEG_TO_RAD;
     }
-    
+
     if (rates.longitudeOfAscendingNode) {
       updatedElements.longitudeOfAscendingNode += rates.longitudeOfAscendingNode * deltaT / 36525 * MATH_CONSTANTS.DEG_TO_RAD;
     }
-    
+
     if (rates.argumentOfPeriapsis) {
       updatedElements.argumentOfPeriapsis += rates.argumentOfPeriapsis * deltaT / 36525 * MATH_CONSTANTS.DEG_TO_RAD;
     }
-    
+
     if (rates.meanAnomaly0) {
       updatedElements.meanAnomaly0 += rates.meanAnomaly0 * deltaT / 36525 * MATH_CONSTANTS.DEG_TO_RAD;
     }
-    
+
     return updatedElements;
   }
 

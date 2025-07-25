@@ -6,8 +6,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { eventSystem, EventTypes } from './EventSystem.js';
-import { timeController } from './TimeController.js';
-import { AstronomyUtils } from '../utils/AstronomyUtils.js';
 import { Sun, Earth, Venus } from '../objects/index.js';
 
 export class SceneManager {
@@ -20,30 +18,30 @@ export class SceneManager {
     this.celestialBodies = new Map();
     this.animationId = null;
     this.clock = new THREE.Clock();
-    
+
     // 性能监控
     this.frameCount = 0;
     this.lastFPSUpdate = 0;
     this.currentFPS = 0;
-    
+
     // 时间相关
     this.lastTimeUpdate = 0;
     this.timeUpdateInterval = 1000; // 1秒更新一次
-    
+
     // 天体管理
     this.celestialBodies = new Map();
     this.orbitalPaths = new Map();
-    
+
     // 相机状态
     this.cameraStates = {
       overview: { position: [0, 50, 100], target: [0, 0, 0] },
       earth: { position: [15, 5, 15], target: [0, 0, 0] },
       telescope: { position: [2, 0, 2], target: [0, 0, 0] }
     };
-    
+
     this.setupEventListeners();
   }
-  
+
   async initialize() {
     try {
       this.setupRenderer();
@@ -52,10 +50,10 @@ export class SceneManager {
       this.setupLighting();
       this.setupScene();
       this.handleResize();
-      
+
       // 创建一个简单的测试场景
       await this.createTestScene();
-      
+
       console.log('SceneManager initialized successfully');
       return this;
     } catch (error) {
@@ -63,7 +61,7 @@ export class SceneManager {
       throw error;
     }
   }
-  
+
   setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
@@ -71,21 +69,21 @@ export class SceneManager {
       alpha: true,
       powerPreference: 'high-performance',
     });
-    
+
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    
+
     // 启用阴影
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    
+
     // 设置背景为星空色调
     this.renderer.setClearColor(0x000011, 1.0);
-    
+
     console.log('Renderer setup complete');
   }
-  
+
   setupCamera() {
     this.camera = new THREE.PerspectiveCamera(
       75,
@@ -93,17 +91,17 @@ export class SceneManager {
       0.1,
       1000
     );
-    
+
     // 设置初始相机位置
     this.camera.position.set(0, 5, 20);
     this.camera.lookAt(0, 0, 0);
-    
+
     console.log('Camera setup complete');
   }
-  
+
   setupControls() {
     this.controls = new OrbitControls(this.camera, this.canvas);
-    
+
     // 配置控制参数
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
@@ -111,41 +109,41 @@ export class SceneManager {
     this.controls.maxDistance = 100;
     this.controls.maxPolarAngle = Math.PI;
     this.controls.minPolarAngle = 0;
-    
+
     // 设置控制速度
     this.controls.rotateSpeed = 1.0;
     this.controls.zoomSpeed = 1.2;
     this.controls.panSpeed = 0.8;
-    
+
     console.log('Controls setup complete');
   }
-  
+
   setupLighting() {
     // 环境光 - 提供基础照明
     const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
     this.scene.add(ambientLight);
-    
+
     // 主光源 - 模拟太阳光
     const sunLight = new THREE.PointLight(0xffffff, 1.5, 100);
     sunLight.position.set(0, 0, 0);
     sunLight.castShadow = true;
-    
+
     // 配置阴影
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 50;
-    
+
     this.scene.add(sunLight);
-    
+
     // 添加辅助方向光，模拟反射光
     const fillLight = new THREE.DirectionalLight(0x404080, 0.3);
     fillLight.position.set(-10, 10, 5);
     this.scene.add(fillLight);
-    
+
     console.log('Lighting setup complete');
   }
-  
+
   setupEventListeners() {
     // 监听时间变化
     eventSystem.subscribe(EventTypes.TIME_CHANGED, (data) => {
@@ -159,13 +157,13 @@ export class SceneManager {
   setupScene() {
     // 设置雾效果，增加深度感
     this.scene.fog = new THREE.Fog(0x000011, 50, 200);
-    
+
     // 添加星空背景
     this.createStarField();
-    
+
     console.log('Scene setup complete');
   }
-  
+
   createStarField() {
     const starsGeometry = new THREE.BufferGeometry();
     const starsMaterial = new THREE.PointsMaterial({
@@ -173,7 +171,7 @@ export class SceneManager {
       size: 0.5,
       sizeAttenuation: false,
     });
-    
+
     const starsVertices = [];
     for (let i = 0; i < 10000; i++) {
       const x = (Math.random() - 0.5) * 2000;
@@ -181,16 +179,16 @@ export class SceneManager {
       const z = (Math.random() - 0.5) * 2000;
       starsVertices.push(x, y, z);
     }
-    
+
     starsGeometry.setAttribute(
       'position',
       new THREE.Float32BufferAttribute(starsVertices, 3)
     );
-    
+
     const starField = new THREE.Points(starsGeometry, starsMaterial);
     this.scene.add(starField);
   }
-  
+
   async createTestScene() {
     try {
       // 创建太阳
@@ -210,14 +208,14 @@ export class SceneManager {
 
       // 创建轨道线
       this.createOrbitLines();
-      
+
       console.log('Solar system created with realistic celestial bodies');
     } catch (error) {
       console.error('Failed to create test scene:', error);
       throw error;
     }
   }
-  
+
   createOrbitLines() {
     // 地球轨道
     const earthOrbitGeometry = new THREE.RingGeometry(7.9, 8.1, 64);
@@ -230,7 +228,7 @@ export class SceneManager {
     const earthOrbit = new THREE.Mesh(earthOrbitGeometry, earthOrbitMaterial);
     earthOrbit.rotation.x = Math.PI / 2;
     this.scene.add(earthOrbit);
-    
+
     // 金星轨道
     const venusOrbitGeometry = new THREE.RingGeometry(5.7, 5.9, 64);
     const venusOrbitMaterial = new THREE.MeshBasicMaterial({
@@ -243,16 +241,16 @@ export class SceneManager {
     venusOrbit.rotation.x = Math.PI / 2;
     this.scene.add(venusOrbit);
   }
-  
+
   addCelestialBody(body) {
     if (!body.mesh) {
       console.warn('Cannot add celestial body without mesh');
       return;
     }
-    
+
     this.celestialBodies.set(body.name, body);
     this.scene.add(body.mesh);
-    
+
     console.log(`Added celestial body: ${body.name}`);
   }
 
@@ -262,13 +260,13 @@ export class SceneManager {
    */
   updateCelestialPositions(time) {
     const julianDate = this.dateToJulian(time);
-    
-    for (const [name, body] of this.celestialBodies) {
+
+    for (const [_name, body] of this.celestialBodies) {
       if (body.updatePosition) {
         body.updatePosition(julianDate);
       }
     }
-    
+
     // 更新轨道线
     this.updateOrbitalPaths(julianDate);
   }
@@ -281,16 +279,16 @@ export class SceneManager {
   addOrbitalPath(name, orbitElements) {
     const points = this.generateOrbitalPoints(orbitElements, 100);
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    
+
     const material = new THREE.LineBasicMaterial({
       color: 0x444444,
       transparent: true,
       opacity: 0.3
     });
-    
+
     const line = new THREE.Line(geometry, material);
     line.name = `${name}_orbit`;
-    
+
     this.orbitalPaths.set(name, line);
     this.scene.add(line);
   }
@@ -303,19 +301,19 @@ export class SceneManager {
    */
   generateOrbitalPoints(orbitElements, segments = 64) {
     const points = [];
-    const { semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis } = orbitElements;
-    
+    const { semiMajorAxis, eccentricity, inclination, argumentOfPeriapsis } = orbitElements;
+
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2;
       const radius = semiMajorAxis * (1 - eccentricity * eccentricity) / (1 + eccentricity * Math.cos(angle));
-      
+
       const x = radius * Math.cos(angle + argumentOfPeriapsis);
       const y = radius * Math.sin(angle + argumentOfPeriapsis) * Math.sin(inclination);
       const z = radius * Math.sin(angle + argumentOfPeriapsis) * Math.cos(inclination);
-      
+
       points.push(new THREE.Vector3(x, y, z));
     }
-    
+
     return points;
   }
 
@@ -323,7 +321,7 @@ export class SceneManager {
    * 更新轨道线
    * @param {number} julianDate - 儒略日
    */
-  updateOrbitalPaths(julianDate) {
+  updateOrbitalPaths(_julianDate) {
     // 轨道线通常是静态的，这里可以添加动态效果
   }
 
@@ -349,7 +347,7 @@ export class SceneManager {
 
     return jd;
   }
-  
+
   removeCelestialBody(name) {
     const body = this.celestialBodies.get(name);
     if (body && body.mesh) {
@@ -358,35 +356,35 @@ export class SceneManager {
       console.log(`Removed celestial body: ${name}`);
     }
   }
-  
+
   startRenderLoop() {
     this.render();
   }
-  
+
   render() {
     const deltaTime = this.clock.getDelta();
-    
+
     // 更新控制器
     this.controls.update();
-    
+
     // 简单的动画：让天体旋转
     this.animateTestObjects(deltaTime);
-    
+
     // 更新FPS计数
     this.updateFPS();
-    
+
     // 渲染场景
     this.renderer.render(this.scene, this.camera);
-    
+
     // 继续动画循环
     this.animationId = requestAnimationFrame(() => this.render());
   }
-  
+
   animateTestObjects(deltaTime) {
     const earth = this.scene.getObjectByName('earth');
     const venus = this.scene.getObjectByName('venus');
     const sun = this.scene.getObjectByName('sun');
-    
+
     if (earth) {
       // 地球绕太阳公转
       earth.rotation.y += deltaTime * 0.5; // 自转
@@ -394,7 +392,7 @@ export class SceneManager {
       earth.position.x = Math.cos(earthAngle) * 8;
       earth.position.z = Math.sin(earthAngle) * 8;
     }
-    
+
     if (venus) {
       // 金星绕太阳公转（更快）
       venus.rotation.y += deltaTime * 0.8;
@@ -402,56 +400,56 @@ export class SceneManager {
       venus.position.x = Math.cos(venusAngle) * 5.8;
       venus.position.z = Math.sin(venusAngle) * 5.8;
     }
-    
+
     if (sun) {
       // 太阳缓慢自转
       sun.rotation.y += deltaTime * 0.1;
     }
   }
-  
+
   updateFPS() {
     this.frameCount++;
     const currentTime = performance.now();
-    
+
     if (currentTime - this.lastFPSUpdate >= 1000) {
       this.currentFPS = Math.round(
         (this.frameCount * 1000) / (currentTime - this.lastFPSUpdate)
       );
       this.frameCount = 0;
       this.lastFPSUpdate = currentTime;
-      
+
       // 在开发模式下显示FPS
       if (process.env.NODE_ENV === 'development') {
         console.log(`FPS: ${this.currentFPS}`);
       }
     }
   }
-  
+
   handleResize() {
     window.addEventListener('resize', () => {
       // 更新相机宽高比
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
-      
+
       // 更新渲染器尺寸
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      
+
       console.log('Scene resized to:', window.innerWidth, 'x', window.innerHeight);
     });
   }
-  
+
   // 获取场景中的对象
   getObjectByName(name) {
     return this.scene.getObjectByName(name);
   }
-  
+
   // 设置相机位置
   setCameraPosition(x, y, z) {
     this.camera.position.set(x, y, z);
     this.controls.update();
   }
-  
+
   // 重置相机到默认位置
   resetCamera() {
     this.camera.position.set(0, 5, 20);
@@ -459,7 +457,7 @@ export class SceneManager {
     this.controls.target.set(0, 0, 0);
     this.controls.update();
   }
-  
+
   // 获取性能信息
   getPerformanceInfo() {
     return {
@@ -470,24 +468,60 @@ export class SceneManager {
       textures: this.renderer.info.memory.textures,
     };
   }
-  
+
+  /**
+   * 更新纹理质量
+   * @param {string} quality - 质量等级 ('low', 'medium', 'high')
+   */
+  updateTextureQuality(quality) {
+    const qualityMap = {
+      low: 512,
+      medium: 1024,
+      high: 2048
+    };
+
+    const maxResolution = qualityMap[quality] || 1024;
+
+    console.log(`Updating texture quality to ${quality} (${maxResolution}px)`);
+
+    // 遍历所有天体并更新纹理质量
+    this.celestialBodies.forEach(body => {
+      if (body.mesh && body.mesh.material) {
+        const material = body.mesh.material;
+
+        // 更新材质纹理
+        if (material.map) {
+          material.map.needsUpdate = true;
+        }
+
+        // 可以在这里添加更复杂的纹理质量调整逻辑
+        // 例如：动态加载不同分辨率的纹理
+      }
+    });
+
+    // 更新渲染器的纹理质量设置
+    if (this.renderer) {
+      this.renderer.setPixelRatio(quality === 'high' ? Math.min(window.devicePixelRatio, 2) : 1);
+    }
+  }
+
   // 清理资源
   dispose() {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
-    
+
     // 清理渲染器
     if (this.renderer) {
       this.renderer.dispose();
     }
-    
+
     // 清理控制器
     if (this.controls) {
       this.controls.dispose();
     }
-    
+
     // 清理场景中的几何体和材质
     this.scene.traverse((object) => {
       if (object.geometry) {
@@ -501,7 +535,7 @@ export class SceneManager {
         }
       }
     });
-    
+
     console.log('SceneManager disposed');
   }
 }

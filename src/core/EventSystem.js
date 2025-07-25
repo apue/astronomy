@@ -8,33 +8,33 @@ export const EventTypes = {
   TIME_CHANGED: 'timeChanged',
   PLAY_STATE_CHANGED: 'playStateChanged',
   SPEED_CHANGED: 'speedChanged',
-  
+
   // 天体相关事件
   CELESTIAL_BODY_CLICKED: 'celestialBodyClicked',
   CELESTIAL_BODY_HOVERED: 'celestialBodyHovered',
   ORBIT_UPDATED: 'orbitUpdated',
-  
+
   // 观测相关事件
   OBSERVATION_POINT_SELECTED: 'observationPointSelected',
   OBSERVATION_POINT_ADDED: 'observationPointAdded',
   TELESCOPE_VIEW_CHANGED: 'telescopeViewChanged',
-  
+
   // 数据相关事件
   DATA_RECORDED: 'dataRecorded',
   DATA_ANALYSIS_COMPLETE: 'dataAnalysisComplete',
   CALCULATION_COMPLETE: 'calculationComplete',
-  
+
   // UI相关事件
   VIEW_MODE_CHANGED: 'viewModeChanged',
   UI_PANEL_TOGGLED: 'uiPanelToggled',
   LOADING_PROGRESS: 'loadingProgress',
-  
+
   // 凌日相关事件
   TRANSIT_STATUS_CHANGED: 'transitStatusChanged',
   TRANSIT_CONTACT_DETECTED: 'transitContactDetected',
   PARALLAX_CALCULATION_COMPLETE: 'parallaxCalculationComplete',
   OBSERVATION_DATA_UPDATED: 'observationDataUpdated',
-  
+
   // 系统事件
   SCENE_INITIALIZED: 'sceneInitialized',
   ERROR_OCCURRED: 'errorOccurred',

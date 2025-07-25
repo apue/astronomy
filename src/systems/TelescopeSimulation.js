@@ -16,14 +16,14 @@ export class TelescopeSimulation {
     this.magnification = 50;
     this.atmosphericEffects = true;
     this.observationError = 0.1; // degrees
-    
+
     this.currentView = {
       target: null,
       position: { lat: 0, lon: 0, elevation: 0 },
       time: new Date(),
       telescope: null
     };
-    
+
     this.telescopePresets = {
       '18th_century_refractor': {
         name: '18世纪折射望远镜',
@@ -56,7 +56,7 @@ export class TelescopeSimulation {
         description: 'Dollond消色差望远镜'
       }
     };
-    
+
     this.atmosphericConditions = {
       clear: {
         name: '晴朗',
@@ -77,7 +77,7 @@ export class TelescopeSimulation {
         visibility: 0.5
       }
     };
-    
+
     this.initialize();
   }
 
@@ -97,7 +97,7 @@ export class TelescopeSimulation {
       0.1,
       1000
     );
-    
+
     this.camera.position.set(0, 0, 0);
     this.camera.name = 'telescope-camera';
   }
@@ -133,7 +133,7 @@ export class TelescopeSimulation {
    */
   createReticle() {
     const reticleGroup = new THREE.Group();
-    
+
     // 水平线
     const horizontalLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
@@ -142,7 +142,7 @@ export class TelescopeSimulation {
       ]),
       new THREE.LineBasicMaterial({ color: 0x00ff00, opacity: 0.7, transparent: true })
     );
-    
+
     // 垂直线
     const verticalLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
@@ -151,7 +151,7 @@ export class TelescopeSimulation {
       ]),
       new THREE.LineBasicMaterial({ color: 0x00ff00, opacity: 0.7, transparent: true })
     );
-    
+
     // 刻度标记
     for (let i = -4; i <= 4; i++) {
       if (i !== 0) {
@@ -165,7 +165,7 @@ export class TelescopeSimulation {
         reticleGroup.add(mark);
       }
     }
-    
+
     reticleGroup.add(horizontalLine, verticalLine);
     return reticleGroup;
   }
@@ -175,13 +175,13 @@ export class TelescopeSimulation {
    */
   createFieldOverlay() {
     const geometry = new THREE.RingGeometry(0.48, 0.5, 32);
-    const material = new THREE.MeshBasicMaterial({ 
-      color: 0x000000, 
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x000000,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.8
     });
-    
+
     return new THREE.Mesh(geometry, material);
   }
 
@@ -194,9 +194,9 @@ export class TelescopeSimulation {
       lon: observationPoint.location.longitude,
       elevation: observationPoint.location.elevation
     };
-    
+
     this.currentView.telescope = observationPoint.telescope || '18th_century_refractor';
-    
+
     eventSystem.emit('telescopePositionChanged', {
       position: this.currentView.position,
       telescope: this.currentView.telescope
@@ -211,10 +211,10 @@ export class TelescopeSimulation {
     if (telescope) {
       this.telescopeFOV = telescope.fieldOfView;
       this.magnification = telescope.magnification;
-      
+
       this.camera.fov = this.telescopeFOV * 180 / Math.PI;
       this.camera.updateProjectionMatrix();
-      
+
       eventSystem.emit('telescopeChanged', { telescope });
     }
   }
@@ -224,38 +224,38 @@ export class TelescopeSimulation {
    */
   updateTelescopeView(currentTime) {
     this.currentView.time = currentTime;
-    
+
     // 计算天体位置
     const earthPos = astronomyCalculator.getCelestialPosition('earth', currentTime);
     const venusPos = astronomyCalculator.getCelestialPosition('venus', currentTime);
     const sunPos = astronomyCalculator.getCelestialPosition('sun', currentTime);
-    
+
     // 计算视差偏移
     const parallaxOffset = this.calculateParallaxOffset(
-      earthPos, 
-      venusPos, 
+      earthPos,
+      venusPos,
       sunPos
     );
-    
+
     // 应用大气折射
     const refractionOffset = this.calculateAtmosphericRefraction(currentTime);
-    
+
     // 综合偏移
     const totalOffset = new THREE.Vector2(
       parallaxOffset.x + refractionOffset.x,
       parallaxOffset.y + refractionOffset.y
     );
-    
+
     // 应用观测误差
     const observationError = this.generateObservationError();
-    
+
     this.currentView.offset = {
       parallax: parallaxOffset,
       refraction: refractionOffset,
       error: observationError,
       total: totalOffset
     };
-    
+
     eventSystem.emit('telescopeViewUpdated', {
       positions: { earth: earthPos, venus: venusPos, sun: sunPos },
       offsets: this.currentView.offset,
@@ -268,17 +268,17 @@ export class TelescopeSimulation {
    */
   calculateParallaxOffset(earthPos, venusPos, sunPos) {
     if (!this.currentView.position) return new THREE.Vector2(0, 0);
-    
+
     // 计算观测者位置对天空的影响
     const observerLat = this.currentView.position.lat * (Math.PI / 180);
     const observerLon = this.currentView.position.lon * (Math.PI / 180);
-    
+
     // 简化的视差计算
     const parallaxFactor = 8.794 / 206265; // 太阳视差角
-    
+
     const deltaX = Math.cos(observerLat) * Math.cos(observerLon) * parallaxFactor;
     const deltaY = Math.cos(observerLat) * Math.sin(observerLon) * parallaxFactor;
-    
+
     return new THREE.Vector2(deltaX, deltaY);
   }
 
@@ -288,13 +288,13 @@ export class TelescopeSimulation {
   calculateAtmosphericRefraction(currentTime) {
     // 基于观测者位置和时间的折射计算
     if (!this.currentView.position) return new THREE.Vector2(0, 0);
-    
+
     const hour = currentTime.getUTCHours();
     const zenithDistance = Math.abs((hour - 12) / 12) * 60; // 简化模型
-    
+
     // 大气折射公式(简化)
     const refraction = 58.294 * Math.tan(zenithDistance * Math.PI / 180);
-    
+
     return new THREE.Vector2(
       Math.random() * refraction * 0.0001,
       Math.random() * refraction * 0.0001
@@ -326,7 +326,7 @@ export class TelescopeSimulation {
    */
   createMeasurementMark(position, label) {
     const mark = new THREE.Group();
-    
+
     // 十字标记
     const crossGeometry = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(-0.02, 0, 0), new THREE.Vector3(0.02, 0, 0),
@@ -334,11 +334,11 @@ export class TelescopeSimulation {
     ]);
     const crossMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
     const cross = new THREE.LineSegments(crossGeometry, crossMaterial);
-    
+
     mark.add(cross);
     mark.position.copy(position);
     mark.userData = { label, type: 'measurement' };
-    
+
     this.measurementMarks.push(mark);
     return mark;
   }
@@ -389,13 +389,13 @@ export class TelescopeSimulation {
   simulateObservation(contactTime) {
     const error = this.generateObservationError();
     const atmosphericDelay = this.calculateAtmosphericRefraction(this.currentView.time);
-    
+
     return {
-      observedTime: new Date(contactTime.getTime() + 
+      observedTime: new Date(contactTime.getTime() +
         (error.x + atmosphericDelay.x) * 3600000),
       actualTime: contactTime,
-      error: error,
-      atmosphericDelay: atmosphericDelay,
+      error,
+      atmosphericDelay,
       telescope: this.getTelescopeParameters()
     };
   }
@@ -405,7 +405,7 @@ export class TelescopeSimulation {
    */
   createObservationReport() {
     const data = this.getObservationData();
-    
+
     return {
       observer: data.position ? `${data.position.lat}°, ${data.position.lon}°` : 'Unknown',
       telescope: data.telescope.name,
@@ -423,7 +423,7 @@ export class TelescopeSimulation {
     this.clearMeasurementMarks();
     this.changeTelescope('18th_century_refractor');
     this.setAtmosphericConditions('clear');
-    
+
     eventSystem.emit('telescopeReset');
   }
 }
