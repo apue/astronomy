@@ -6,6 +6,7 @@
  */
 
 import './styles/main.css';
+import * as THREE from 'three';
 import { SceneManager } from './core/SceneManager.js';
 import { timeController } from './core/TimeController.js';
 import { eventSystem, EventTypes } from './core/EventSystem.js';
@@ -16,12 +17,15 @@ import { transitCalculator } from './systems/TransitCalculator.js';
 import { advancedTimeController } from './systems/AdvancedTimeController.js';
 import { timeControlPanel } from './ui/TimeControlPanel.js';
 import { historicalObservationSystem } from './systems/HistoricalObservationSystem.js';
+// import { EarthObservationMarkers } from './systems/EarthObservationMarkers.js'; // 已禁用
 import { TelescopeSimulation } from './systems/TelescopeSimulation.js';
 import { userDataRecorder } from './systems/UserDataRecorder.js';
 import { parallaxEngine } from './systems/ParallaxCalculationEngine.js';
 import { educationalGuidanceSystem } from './systems/EducationalGuidanceSystem.js';
 import { modernInterface } from './ui/ModernInterface.js';
 import { uiIntegration } from './ui/UIIntegration.js';
+import './ui/ObservationPointSelector.js'; // Auto-initializes globally
+import { tooltipSystem } from './ui/TooltipSystem.js';
 import { performanceOptimizer } from './systems/PerformanceOptimizer.js';
 
 class AstronomyApp {
@@ -33,12 +37,13 @@ class AstronomyApp {
     this.celestialBodies = new Map();
     this.textureGenerator = new TextureGenerator();
     this.telescopeSimulation = null;
+    this.earthMarkers = null;
     this.debugMode = false;
 
     // 检查URL参数来设置debug模式
     const urlParams = new URLSearchParams(window.location.search);
     this.debugMode = urlParams.has('debug') || urlParams.get('debug') === 'true';
-    
+
     if (this.debugMode) {
       console.log('🔧 DEBUG MODE ENABLED');
       console.log('🔧 Sun will be rendered as red sphere instead of textured surface');
@@ -53,7 +58,7 @@ class AstronomyApp {
 
   async init() {
     try {
-  
+
       // 检查WebGL支持
       if (!this.checkWebGLSupport()) {
         return;
@@ -94,7 +99,7 @@ class AstronomyApp {
       this.sceneManager.startRenderLoop();
 
       this.isInitialized = true;
-      
+
       console.log('🔄 Hiding loading screen...');
       this.hideLoadingScreen();
 
@@ -176,7 +181,7 @@ class AstronomyApp {
     const loadingText = document.getElementById('loading-text');
 
     console.log(`📊 Progress: ${percent}% - ${text}`);
-    
+
     if (loadingBar) {
       loadingBar.style.width = `${percent}%`;
     } else {
@@ -194,7 +199,7 @@ class AstronomyApp {
     console.log('🎭 hideLoadingScreen called');
     const loadingScreen = document.getElementById('loading-screen');
     console.log('🎭 Loading screen element:', loadingScreen);
-    
+
     if (loadingScreen) {
       loadingScreen.style.opacity = '0';
       loadingScreen.style.transition = 'opacity 0.5s ease';
@@ -245,6 +250,16 @@ class AstronomyApp {
 
     eventSystem.subscribe(EventTypes.TIME_CHANGED, (data) => {
       this.handleTimeChange(data);
+    });
+
+    // 监听观测点选择事件
+    eventSystem.subscribe(EventTypes.OBSERVATION_POINT_SELECTED, (data) => {
+      this.handleObservationPointSelected(data);
+    });
+
+    // 监听地球点击事件
+    eventSystem.subscribe('earthClicked', (data) => {
+      this.handleEarthClick(data);
     });
   }
 
@@ -308,6 +323,10 @@ class AstronomyApp {
     // 初始化历史观测系统
     await historicalObservationSystem.initialize();
 
+    // 初始化地球观测点标记系统 - 暂时禁用，避免地球渲染混乱
+    // this.earthMarkers = new EarthObservationMarkers(this.sceneManager);
+    // await this.earthMarkers.initialize();
+
     // 初始化望远镜模拟
     this.telescopeSimulation = new TelescopeSimulation(this.sceneManager);
 
@@ -370,8 +389,8 @@ class AstronomyApp {
         modernInterface.toggleAccessibilityPanel();
         break;
       case 'h':
-        // 显示帮助
-        modernInterface.showHelpModal();
+        // 显示帮助 - 使用tooltip系统显示键盘快捷键
+        tooltipSystem.showKeyboardShortcuts();
         break;
       case 's':
         // 显示设置
@@ -406,25 +425,25 @@ class AstronomyApp {
   async toggleDebugMode() {
     this.debugMode = !this.debugMode;
     console.log(`🔧 Debug mode ${this.debugMode ? 'enabled' : 'disabled'}`);
-    
+
     // 显示调试状态提示
     this.showNotification(`Debug mode ${this.debugMode ? 'ON' : 'OFF'} - Sun is now ${this.debugMode ? 'red sphere' : 'textured'}`);
-    
+
     // 重新创建太阳以应用debug模式
     const sun = this.celestialBodies.get('sun');
     if (sun) {
       // 移除旧的太阳
       this.sceneManager.scene.remove(sun.mesh);
-      
+
       // 创建新的太阳实例
       const newSun = new Sun({ debugMode: this.debugMode });
       await newSun.initialize();
       await newSun.initializeSun();
-      
+
       // 替换旧的太阳
       this.celestialBodies.set('sun', newSun);
       this.sceneManager.addCelestialBody(newSun);
-      
+
       console.log('🌞 Sun reinitialized in debug mode');
     }
   }
@@ -446,7 +465,7 @@ class AstronomyApp {
     `;
     notification.textContent = message;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
       notification.remove();
     }, 3000);
@@ -526,6 +545,33 @@ class AstronomyApp {
   handleBodyClick(data) {
     console.log('🪐 Body clicked:', data.body.name);
     this.showBodyInfo(data.body);
+  }
+
+  handleEarthClick(data) {
+    console.log('🌍 Earth clicked, showing observation point selector');
+    // ObservationPointSelector已经在事件中自动显示了
+    // 这里可以添加额外的逻辑，比如相机动画等
+  }
+
+  handleObservationPointSelected(data) {
+    const { point, year } = data;
+    console.log(`🔭 Observation point selected: ${point.name} (${year})`);
+
+    // 设置时间到观测年份
+    const transitDate = new Date(year === 1761 ? '1761-06-06T05:00:00Z' : '1769-06-03T05:00:00Z');
+    timeController.setTime(transitDate);
+
+    // 聚焦到地球并开始望远镜模拟
+    this.focusOnObservationPoint(point);
+
+    // 启动望远镜视图
+    if (this.telescopeSimulation) {
+      this.telescopeSimulation.setObservationPoint(point);
+      // 可以在这里启动望远镜视图，或者让用户手动切换
+    }
+
+    // 显示观测点信息
+    this.showObservationPointInfo(point, year);
   }
 
   handleTimeChange(data) {
@@ -786,6 +832,67 @@ class AstronomyApp {
     }, 5000);
   }
 
+  /**
+   * 聚焦到观测点
+   */
+  focusOnObservationPoint(point) {
+    const earth = this.celestialBodies.get('earth');
+    if (earth && earth.position && this.sceneManager) {
+      // 计算基于地球位置的相机位置
+      const earthPos = earth.position;
+      const distance = 8; // 距离地球的距离
+
+      // 根据观测点的纬度调整相机角度
+      const lat = (point.location.latitude * Math.PI) / 180;
+      const lon = (point.location.longitude * Math.PI) / 180;
+
+      // 计算相机位置（稍微偏离观测点，便于观察）
+      const cameraX = earthPos.x + distance * Math.cos(lat) * Math.cos(lon);
+      const cameraY = earthPos.y + distance * Math.sin(lat);
+      const cameraZ = earthPos.z + distance * Math.cos(lat) * Math.sin(lon);
+
+      const targetPosition = new THREE.Vector3(cameraX, cameraY, cameraZ);
+      const targetLookAt = earthPos.clone();
+
+      // 使用平滑动画移动相机
+      this.sceneManager.animateCameraTo(targetPosition, targetLookAt, 1500);
+
+      console.log(`📍 Camera focused on observation point: ${point.name}`);
+    }
+  }
+
+  /**
+   * 显示观测点信息
+   */
+  showObservationPointInfo(point, year) {
+    console.log(`
+    🔭 观测点详细信息
+    
+    观测点: ${point.name}
+    观测者: ${point.observer}
+    年份: ${year}年金星凌日
+    位置: ${point.location.latitude.toFixed(4)}°, ${point.location.longitude.toFixed(4)}°
+    海拔: ${point.location.elevation}米
+    望远镜: ${point.telescope}
+    精度: ${point.accuracy}
+    
+    观测时间:
+    ${point.contactTimes ? `
+    第一接触: ${point.contactTimes.first.toUTCString()}
+    第二接触: ${point.contactTimes.second.toUTCString()}
+    第三接触: ${point.contactTimes.third.toUTCString()}
+    第四接触: ${point.contactTimes.fourth.toUTCString()}
+    ` : '时间数据不可用'}
+    
+    备注: ${point.notes || '无'}
+    
+    💡 使用 'V' 键可以切换到望远镜视图
+    `);
+
+    // 创建简单的信息提示
+    this.showNotification(`已选择观测点: ${point.name} (${point.observer})`);
+  }
+
   // 公共API
   getCelestialBody(name) {
     return this.celestialBodies.get(name);
@@ -876,6 +983,11 @@ class AstronomyApp {
       this.sceneManager.dispose();
     }
 
+    // 清理地球标记系统 - 已禁用
+    // if (this.earthMarkers) {
+    //   this.earthMarkers.dispose();
+    // }
+
     this.celestialBodies.forEach(body => {
       body.dispose();
     });
@@ -896,7 +1008,7 @@ let app = null;
 // 初始化应用
 async function initApp() {
   console.log('🎬 Starting initApp...');
-  
+
   if (app) {
     console.log('🧹 Disposing existing app...');
     app.dispose();
@@ -904,10 +1016,10 @@ async function initApp() {
 
   console.log('🏗️ Creating new AstronomyApp instance...');
   app = new AstronomyApp();
-  
+
   console.log('🚀 Calling app.init()...');
   await app.init(); // 关键：调用初始化方法
-  
+
   console.log('✅ initApp completed');
   return app;
 }

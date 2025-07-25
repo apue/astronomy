@@ -31,7 +31,7 @@ export class Earth extends CelestialBody {
     });
 
     console.log(`🌍 地球构造函数：半径=${this.radius}，轨道半径=${this.orbitElements.semiMajorAxis}`);
-    
+
     this.type = 'earth';
     this.atmosphereHeight = this.radius * 0.1;
     this.cloudRotationSpeed = 0.001;
@@ -42,7 +42,7 @@ export class Earth extends CelestialBody {
 
   async initializeEarth() {
     try {
-      console.log(`🌍 开始初始化地球...`);
+      console.log('🌍 开始初始化地球...');
       await this.loadEarthTextures();
       this.createAtmosphere();
       this.createClouds();
@@ -102,7 +102,7 @@ export class Earth extends CelestialBody {
   }
 
   createAtmosphere() {
-    // 大气层效果
+    // 简化的大气层效果
     const atmosphereGeometry = new THREE.SphereGeometry(
       this.radius + this.atmosphereHeight,
       32,
@@ -112,38 +112,21 @@ export class Earth extends CelestialBody {
     const atmosphereMaterial = new THREE.MeshPhongMaterial({
       color: 0x87CEEB,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.15,
       side: THREE.BackSide,
-      blending: THREE.AdditiveBlending
+      depthWrite: false
     });
 
     this.atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     this.mesh.add(this.atmosphereMesh);
-
-    // 大气辉光
-    const glowGeometry = new THREE.SphereGeometry(
-      this.radius + this.atmosphereHeight * 0.5,
-      32,
-      16
-    );
-
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x87CEEB,
-      transparent: true,
-      opacity: 0.1,
-      side: THREE.BackSide
-    });
-
-    this.atmosphereGlow = new THREE.Mesh(glowGeometry, glowMaterial);
-    this.mesh.add(this.atmosphereGlow);
   }
 
   createClouds() {
     if (!this.cloudTexture) return;
 
-    // 云层
+    // 简化的云层
     const cloudGeometry = new THREE.SphereGeometry(
-      this.radius + 0.001, // 略高于地表
+      this.radius + 0.002, // 略高于地表
       32,
       16
     );
@@ -151,9 +134,7 @@ export class Earth extends CelestialBody {
     const cloudMaterial = new THREE.MeshPhongMaterial({
       map: this.cloudTexture,
       transparent: true,
-      opacity: 0.8,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.6,
       depthWrite: false
     });
 
@@ -164,16 +145,14 @@ export class Earth extends CelestialBody {
   createNightSide() {
     if (!this.nightTexture) return;
 
-    // 更新主材质以支持昼夜变化
+    // 简化的昼夜材质
     this.material = new THREE.MeshPhongMaterial({
       map: this.dayTexture,
       bumpMap: this.bumpTexture,
-      bumpScale: 0.05,
+      bumpScale: 0.02,
       emissiveMap: this.nightTexture,
-      emissive: 0x444444,
-      emissiveIntensity: 0.8,
-      shininess: 30,
-      specular: 0x111111
+      emissive: 0x222222,
+      emissiveIntensity: 0.5
     });
 
     // 更新网格材质
@@ -195,34 +174,34 @@ export class Earth extends CelestialBody {
   calculatePosition(julianDate) {
     // 直接计算轨道位置，确保地球严格位于轨道上
     // 不再依赖AstronomyUtils的计算结果
-    
+
     // 参数
     const earthOrbitRadius = 8.0;
-    
+
     // 计算地球在轨道上的角度
     // 从J2000.0开始计算天数
     const daysSinceJ2000 = julianDate - 2451545.0;
-    
+
     // 地球公转周期365.256天，角速度约0.0172弧度/天
     // 角度 = (天数 * 角速度) % (2π)
     const angularVelocity = (2 * Math.PI) / 365.256363004;
     const angle = (daysSinceJ2000 * angularVelocity) % (2 * Math.PI);
-    
+
     // 计算轨道位置
     const x = earthOrbitRadius * Math.cos(angle);
     const z = earthOrbitRadius * Math.sin(angle);
     const position = new THREE.Vector3(x, 0, z);
-    
+
     // 日志输出
-    console.log(`🌍 地球直接计算位置:`);
+    console.log('🌍 地球直接计算位置:');
     console.log(`🌍 - 公转角度: ${(angle * 180 / Math.PI).toFixed(2)}°`);
     console.log(`🌍 - 轨道半径: ${earthOrbitRadius.toFixed(2)} 单位`);
     console.log(`🌍 - 计算位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
-    
+
     // 验证距离
     const distance = Math.sqrt(position.x * position.x + position.z * position.z);
     console.log(`🌍 - 实际距离: ${distance.toFixed(4)} (目标: ${earthOrbitRadius.toFixed(4)})`);
-    
+
     return position;
   }
 
@@ -232,7 +211,7 @@ export class Earth extends CelestialBody {
     // 根据距离调整大气层透明度
     if (this.atmosphereMesh) {
       const distance = this.position.distanceTo(cameraPosition);
-      const opacity = Math.min(0.3, Math.max(0.1, 50 / distance));
+      const opacity = Math.min(0.2, Math.max(0.05, 30 / distance));
       this.atmosphereMesh.material.opacity = opacity;
     }
   }
@@ -243,7 +222,7 @@ export class Earth extends CelestialBody {
     if (this.mesh) {
       console.log(`🌍 地球网格位置: (${this.mesh.position.x.toFixed(2)}, ${this.mesh.position.y.toFixed(2)}, ${this.mesh.position.z.toFixed(2)})`);
     } else {
-      console.log(`❌ 地球网格对象不存在!`);
+      console.log('❌ 地球网格对象不存在!');
     }
   }
 
@@ -256,10 +235,6 @@ export class Earth extends CelestialBody {
 
     if (this.cloudMesh) {
       this.cloudMesh.visible = visible;
-    }
-
-    if (this.atmosphereGlow) {
-      this.atmosphereGlow.visible = visible;
     }
   }
 
@@ -292,11 +267,6 @@ export class Earth extends CelestialBody {
     if (this.cloudMesh) {
       this.cloudMesh.geometry.dispose();
       this.cloudMesh.material.dispose();
-    }
-
-    if (this.atmosphereGlow) {
-      this.atmosphereGlow.geometry.dispose();
-      this.atmosphereGlow.material.dispose();
     }
 
     [this.dayTexture, this.nightTexture, this.cloudTexture, this.bumpTexture]

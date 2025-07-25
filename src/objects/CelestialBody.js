@@ -187,7 +187,7 @@ export class CelestialBody {
     context.fillRect(0, 0, width, height);
 
     // 添加一些纹理效果
-    context.fillStyle = `rgba(255, 255, 255, 0.1)`;
+    context.fillStyle = 'rgba(255, 255, 255, 0.1)';
     for (let i = 0; i < 20; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
@@ -279,13 +279,13 @@ export class CelestialBody {
 
     if (this.texture) {
       baseOptions.map = this.texture;
-      console.log(`🎨 Texture applied to material`);
+      console.log('🎨 Texture applied to material');
     }
 
     // 根据天体类型选择材质
     if (this.emissiveIntensity > 0) {
       // 发光天体使用MeshStandardMaterial支持emissive属性
-      console.log(`🎨 Creating emissive material (MeshStandardMaterial)`);
+      console.log('🎨 Creating emissive material (MeshStandardMaterial)');
       this.material = new THREE.MeshStandardMaterial({
         ...baseOptions,
         emissive: this.emissive,
@@ -293,10 +293,10 @@ export class CelestialBody {
         roughness: 1.0,
         metalness: 0.0
       });
-      
+
       // 对于太阳，确保纹理不被发光效果完全覆盖
       if (this.name.toLowerCase() === 'sun') {
-        console.log(`🎨 Applying special Sun material settings`);
+        console.log('🎨 Applying special Sun material settings');
         this.material.emissiveIntensity = Math.min(this.emissiveIntensity, 0.3);
         // 确保纹理可见
         if (this.texture) {
@@ -305,7 +305,7 @@ export class CelestialBody {
       }
     } else {
       // 非发光天体使用MeshPhongMaterial
-      console.log(`🎨 Creating non-emissive material (MeshPhongMaterial)`);
+      console.log('🎨 Creating non-emissive material (MeshPhongMaterial)');
       this.material = new THREE.MeshPhongMaterial({
         ...baseOptions,
         shininess: 30,

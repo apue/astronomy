@@ -1106,7 +1106,7 @@ export class ModernInterface {
       this.createHelpModal();
       modal = document.getElementById('help-modal');
     }
-    
+
     if (modal) {
       modal.style.display = 'block';
       const closeBtn = modal.querySelector('.modal-close');

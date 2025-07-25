@@ -35,7 +35,7 @@ export class Venus extends CelestialBody {
       ...options
     });
 
-    console.log(`♀️ 金星构造函数:`);
+    console.log('♀️ 金星构造函数:');
     console.log(`♀️ - 半径: ${this.radius} 单位`);
     console.log(`♀️ - 轨道半径: ${this.orbitElements.semiMajorAxis} 单位 (= ${earthOrbitRadius} × ${venusOrbitRatio})`);
     console.log(`♀️ - 轨道比例: ${venusOrbitRatio}`);
@@ -53,7 +53,7 @@ export class Venus extends CelestialBody {
 
   async initializeVenus() {
     try {
-      console.log(`♀️ 开始初始化金星...`);
+      console.log('♀️ 开始初始化金星...');
       await this.loadVenusTextures();
       this.createDenseAtmosphere();
       this.createSulfuricClouds();
@@ -226,36 +226,36 @@ export class Venus extends CelestialBody {
   calculatePosition(julianDate) {
     // 直接计算轨道位置，确保金星严格位于轨道上
     // 不再依赖AstronomyUtils的计算结果
-    
+
     // 参数
     const earthOrbitRadius = 8.0;
     const venusOrbitRatio = 0.723; // 金星轨道比例
     const venusOrbitRadius = earthOrbitRadius * venusOrbitRatio; // 5.784
-    
+
     // 计算金星在轨道上的角度
     // 从J2000.0开始计算天数
     const daysSinceJ2000 = julianDate - 2451545.0;
-    
+
     // 金星公转周期224.701天，角速度约0.0279弧度/天
     // 角度 = (天数 * 角速度) % (2π)
     const angularVelocity = (2 * Math.PI) / 224.701;
     const angle = (daysSinceJ2000 * angularVelocity) % (2 * Math.PI);
-    
+
     // 计算轨道位置
     const x = venusOrbitRadius * Math.cos(angle);
     const z = venusOrbitRadius * Math.sin(angle);
     const position = new THREE.Vector3(x, 0, z);
-    
+
     // 日志输出
-    console.log(`♀️ 金星直接计算位置:`);
+    console.log('♀️ 金星直接计算位置:');
     console.log(`♀️ - 公转角度: ${(angle * 180 / Math.PI).toFixed(2)}°`);
     console.log(`♀️ - 轨道半径: ${venusOrbitRadius.toFixed(2)} 单位`);
     console.log(`♀️ - 计算位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
-    
+
     // 验证距离
     const distance = Math.sqrt(position.x * position.x + position.z * position.z);
     console.log(`♀️ - 实际距离: ${distance.toFixed(4)} (目标: ${venusOrbitRadius.toFixed(4)})`);
-    
+
     return position;
   }
 
@@ -265,7 +265,7 @@ export class Venus extends CelestialBody {
     if (this.mesh) {
       console.log(`♀️ 金星网格位置: (${this.mesh.position.x.toFixed(2)}, ${this.mesh.position.y.toFixed(2)}, ${this.mesh.position.z.toFixed(2)})`);
     } else {
-      console.log(`❌ 金星网格对象不存在!`);
+      console.log('❌ 金星网格对象不存在!');
     }
   }
 

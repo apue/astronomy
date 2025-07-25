@@ -11,7 +11,7 @@ import { AstronomyUtils } from '../utils/AstronomyUtils.js';
 export class Sun extends CelestialBody {
   constructor(options = {}) {
     const sunData = CELESTIAL_BODIES.SUN;
-    
+
     // 重新计算太阳尺寸，使其与轨道比例协调
     // 地球轨道8单位 = 1AU，太阳应该看起来合理
     const sunRadius = 0.5; // 将太阳缩小到0.5单位，这样看起来不会过大
@@ -52,12 +52,12 @@ export class Sun extends CelestialBody {
       console.log('🌞 Current mesh status:', this.mesh ? 'Mesh exists' : 'No mesh');
       console.log('🌞 Current material status:', this.material ? 'Material exists' : 'No material');
       console.log('🌞 Current texture status:', this.texture ? 'Texture exists' : 'No texture');
-      
+
       await this.loadCoronaTexture();
       this.createSunVisuals();
       this.createLighting();
       this.createCorona();
-      
+
       console.log('🌞 Sun initialization completed successfully');
       console.log('🌞 Final mesh status:', this.mesh ? 'Mesh ready' : 'Mesh missing');
       console.log('🌞 Final material emissive:', this.mesh?.material?.emissive);
@@ -89,11 +89,11 @@ export class Sun extends CelestialBody {
     console.log('🌞 Creating sun visuals...');
     console.log('🌞 Sun radius:', this.radius);
     console.log('🌞 Debug mode:', this.debugMode);
-    
+
     if (this.debugMode) {
       // Debug模式：使用红色球体
       console.log('🌞 Debug mode enabled - creating red sphere instead of textured sun');
-      
+
       if (this.mesh && this.mesh.material) {
         // 使用标准材质红色
         this.mesh.material = new THREE.MeshBasicMaterial({
@@ -157,7 +157,7 @@ export class Sun extends CelestialBody {
       this.ambientLight = new THREE.AmbientLight(0x404040, 0.2);
       this.mesh.add(this.ambientLight);
     }
-    
+
     this.mesh.add(this.sunLight);
   }
 
@@ -182,7 +182,7 @@ export class Sun extends CelestialBody {
     if (this.debugMode) return; // Debug模式下不创建粒子动画
 
     console.log('🌞 Creating surface animation particles...');
-    
+
     // 创建太阳表面粒子的动画
     const particleCount = 500; // 减少粒子数量以提高性能
     const particles = new THREE.BufferGeometry();

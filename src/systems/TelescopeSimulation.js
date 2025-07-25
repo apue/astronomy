@@ -110,13 +110,20 @@ export class TelescopeSimulation {
       this.updateTelescopeView(data.time);
     });
 
-    eventSystem.subscribe('observationPointSelected', (data) => {
+    eventSystem.subscribe(EventTypes.OBSERVATION_POINT_SELECTED, (data) => {
       this.setObservationPosition(data.point);
     });
 
     eventSystem.subscribe('telescopeChanged', (data) => {
       this.changeTelescope(data.telescope);
     });
+  }
+
+  /**
+   * 设置观测点（与setObservationPosition相同，为兼容性添加）
+   */
+  setObservationPoint(observationPoint) {
+    return this.setObservationPosition(observationPoint);
   }
 
   /**

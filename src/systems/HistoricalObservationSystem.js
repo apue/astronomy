@@ -383,6 +383,13 @@ export class HistoricalObservationSystem {
   }
 
   /**
+   * 设置活跃年份（别名方法，与UIIntegration兼容）
+   */
+  setActiveYear(year) {
+    this.setCurrentYear(year);
+  }
+
+  /**
    * 获取观测点详细信息
    */
   getObservationPointDetails(pointId) {

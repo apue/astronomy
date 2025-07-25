@@ -183,13 +183,65 @@ export class ParallaxCalculationEngine {
       this.updateCalculations(data.time);
     });
 
-    eventSystem.subscribe('observationPointSelected', (data) => {
-      this.calculateParallaxForObservation(data.point);
+    eventSystem.subscribe(EventTypes.OBSERVATION_POINT_SELECTED, (data) => {
+      this.calculateParallaxForObservation(data.point, data.year);
     });
 
     eventSystem.subscribe('measurementTaken', (data) => {
       this.validateMeasurement(data.measurement);
     });
+  }
+
+  /**
+   * 为单个观测点计算视差（与其他观测点配对）
+   */
+  calculateParallaxForObservation(observationPoint, year) {
+    console.log(`🔬 Calculating parallax for observation point: ${observationPoint.name} (${year})`);
+    
+    // 获取同年份的其他观测点
+    const allPoints = historicalObservationSystem.getHistoricalObservationPoints(year);
+    const otherPoints = allPoints.filter(point => point.id !== observationPoint.id);
+    
+    if (otherPoints.length === 0) {
+      console.warn('No other observation points available for parallax calculation');
+      return null;
+    }
+
+    // 找到最佳配对观测点（最大基线距离）
+    let bestPair = [];
+    let maxBaseline = 0;
+    
+    otherPoints.forEach(otherPoint => {
+      const baseline = this.calculateGeodesicDistance(
+        observationPoint.location,
+        otherPoint.location
+      );
+      
+      if (baseline > maxBaseline) {
+        maxBaseline = baseline;
+        bestPair = [observationPoint, otherPoint];
+      }
+    });
+
+    if (bestPair.length === 2) {
+      // 使用凌日时间进行计算
+      const transitDate = new Date(year === 1761 ? '1761-06-06T05:30:00Z' : '1769-06-03T05:30:00Z');
+      const result = this.calculateParallax(bestPair[0], bestPair[1], transitDate);
+      
+      console.log(`📊 Parallax calculation result: ${result.calculatedAU.toFixed(0)} km (${result.error.toFixed(2)}% error)`);
+      
+      // 发射计算完成事件
+      eventSystem.emit('parallaxCalculated', {
+        observationPoint,
+        year,
+        result,
+        baseline: maxBaseline
+      });
+      
+      return result;
+    }
+    
+    return null;
   }
 
   /**

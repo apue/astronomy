@@ -427,19 +427,19 @@ export class TimeControlPanel {
       btn.addEventListener('click', (e) => {
         const year = parseInt(e.target.dataset.year);
         const contact = e.target.dataset.contact;
-        
+
         // 简化的跳转逻辑
         let targetDate;
         if (year === 1761) {
-          targetDate = contact === 'first' ? 
-            new Date('1761-06-06T02:19:00Z') : 
+          targetDate = contact === 'first' ?
+            new Date('1761-06-06T02:19:00Z') :
             new Date('1761-06-06T08:57:00Z');
         } else if (year === 1769) {
-          targetDate = contact === 'first' ? 
-            new Date('1769-06-03T02:19:00Z') : 
+          targetDate = contact === 'first' ?
+            new Date('1769-06-03T02:19:00Z') :
             new Date('1769-06-03T08:57:00Z');
         }
-        
+
         if (targetDate && window.timeController) {
           window.timeController.jumpToTime(targetDate);
         }
