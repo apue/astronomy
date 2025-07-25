@@ -47,6 +47,21 @@
       height: 100%;
     }
     
+    /* 移动端优化 - 确保画布不被UI元素遮挡 */
+    @media (max-width: 768px) {
+      #canvas {
+        height: 100vh !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 1 !important;
+      }
+      
+      #app {
+        overflow: hidden !important;
+      }
+    }
+    
     /* 加载屏幕 */
     #loading-screen {
       position: fixed;

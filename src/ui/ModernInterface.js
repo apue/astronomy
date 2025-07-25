@@ -58,7 +58,7 @@ export class ModernInterface {
 
     this.createRootStyles();
     this.setupResponsiveDesign();
-    this.setupAccessibility();
+    this.setupBasicAccessibility();
     this.setupEventListeners();
 
     this.isInitialized = true;
@@ -311,13 +311,13 @@ export class ModernInterface {
   }
 
   /**
-   * 设置无障碍支持
+   * 设置基础无障碍支持
    */
-  setupAccessibility() {
+  setupBasicAccessibility() {
     this.createAccessibilityStyles();
     this.setupKeyboardNavigation();
     this.setupScreenReaderSupport();
-    this.createAccessibilityPanel();
+    // 移除无障碍面板 - 功能重复且遮挡视图
   }
 
   createAccessibilityStyles() {
@@ -414,122 +414,6 @@ export class ModernInterface {
     document.body.setAttribute('aria-label', '金星凌日测距教学系统');
   }
 
-  createAccessibilityPanel() {
-    const panel = document.createElement('div');
-    panel.id = 'accessibility-panel';
-    panel.className = 'accessibility-panel';
-    panel.innerHTML = `
-      <h2 id="accessibility-title">无障碍设置</h2>
-      
-      <div class="accessibility-section">
-        <label for="theme-toggle">主题:</label>
-        <select id="theme-toggle" aria-label="选择界面主题">
-          <option value="dark">深色主题</option>
-          <option value="light">浅色主题</option>
-          <option value="high-contrast">高对比度</option>
-        </select>
-      </div>
-      
-      <div class="accessibility-section">
-        <label for="font-size">字体大小:</label>
-        <input type="range" id="font-size" min="12" max="24" value="16" aria-label="调整字体大小">
-        <span id="font-size-value">16px</span>
-      </div>
-      
-      <div class="accessibility-section">
-        <label>
-          <input type="checkbox" id="reduced-motion" aria-label="减少动画效果">
-          减少动画效果
-        </label>
-      </div>
-      
-      <div class="accessibility-section">
-        <label>
-          <input type="checkbox" id="high-contrast" aria-label="启用高对比度模式">
-          高对比度模式
-        </label>
-      </div>
-    `;
-
-    this.styleAccessibilityPanel(panel);
-    document.body.appendChild(panel);
-    this.setupAccessibilityControls(panel);
-  }
-
-  styleAccessibilityPanel(panel) {
-    panel.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 300px;
-      background: var(--color-surface);
-      border: 1px solid var(--color-primary);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-height: 80vh;
-      overflow-y: auto;
-    `;
-
-    // 添加CSS样式
-    const style = document.createElement('style');
-    style.textContent = `
-      .accessibility-panel h2 {
-        color: var(--color-primary);
-        margin: 0 0 20px 0;
-        font-size: 1.2em;
-      }
-      
-      .accessibility-section {
-        margin-bottom: 15px;
-      }
-      
-      .accessibility-section label {
-        display: block;
-        margin-bottom: 5px;
-        color: var(--color-text);
-        font-weight: 500;
-      }
-      
-      .accessibility-section input,
-      .accessibility-section select {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid var(--color-text-secondary);
-        border-radius: 4px;
-        background: var(--color-background);
-        color: var(--color-text);
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  setupAccessibilityControls(panel) {
-    const themeToggle = panel.querySelector('#theme-toggle');
-    const fontSize = panel.querySelector('#font-size');
-    const fontSizeValue = panel.querySelector('#font-size-value');
-    const reducedMotion = panel.querySelector('#reduced-motion');
-    const highContrast = panel.querySelector('#high-contrast');
-
-    themeToggle.addEventListener('change', (e) => {
-      this.setTheme(e.target.value);
-    });
-
-    fontSize.addEventListener('input', (e) => {
-      this.setFontSize(parseInt(e.target.value));
-      fontSizeValue.textContent = `${e.target.value}px`;
-    });
-
-    reducedMotion.addEventListener('change', (e) => {
-      this.setReducedMotion(e.target.checked);
-    });
-
-    highContrast.addEventListener('change', (e) => {
-      this.setHighContrast(e.target.checked);
-    });
-  }
 
   /**
    * 设置主题
@@ -589,9 +473,6 @@ export class ModernInterface {
         <button class="nav-btn" data-action="help" aria-label="显示帮助信息" title="查看操作指南和快捷键说明">
           帮助
         </button>
-        <button class="nav-btn" data-action="settings" aria-label="打开设置面板" title="调整界面主题、字体大小等设置">
-          设置
-        </button>
         <button class="nav-btn" data-action="reset-view" aria-label="重置视角" title="将相机重置到默认位置">
           重置视角
         </button>
@@ -609,15 +490,16 @@ export class ModernInterface {
       top: 0;
       left: 0;
       right: 0;
-      background: rgba(10, 10, 10, 0.9);
+      background: rgba(10, 10, 10, 0.95);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--color-primary);
-      padding: 12px 20px;
+      padding: 8px 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 100;
       transition: var(--transition-normal);
+      min-height: 50px;
     `;
 
     const style = document.createElement('style');
@@ -625,36 +507,88 @@ export class ModernInterface {
       .nav-brand h1 {
         margin: 0;
         color: var(--color-primary);
-        font-size: 1.5em;
+        font-size: 1.3em;
         font-weight: 300;
       }
       
       .nav-subtitle {
         color: var(--color-text-secondary);
-        font-size: 0.9em;
+        font-size: 0.8em;
+        display: none;
       }
       
       .nav-controls {
         display: flex;
-        gap: 10px;
+        gap: 8px;
+        flex-wrap: wrap;
       }
       
       .nav-btn {
         background: transparent;
         border: 1px solid var(--color-primary);
         color: var(--color-primary);
-        padding: 8px 16px;
-        border-radius: 20px;
+        padding: 6px 12px;
+        border-radius: 15px;
         cursor: pointer;
         transition: var(--transition-fast);
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
+        font-size: 0.85em;
+        min-height: 36px;
+        white-space: nowrap;
       }
       
-      .nav-btn:hover {
+      .nav-btn:hover,
+      .nav-btn:active {
         background: var(--color-primary);
         color: var(--color-background);
+      }
+      
+      /* 移动端优化 */
+      @media (max-width: 768px) {
+        .modern-nav {
+          padding: 6px 10px !important;
+          min-height: 45px !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          gap: 8px;
+        }
+        
+        .nav-brand {
+          text-align: center;
+        }
+        
+        .nav-brand h1 {
+          font-size: 1.1em !important;
+        }
+        
+        .nav-subtitle {
+          display: block !important;
+          font-size: 0.75em !important;
+        }
+        
+        .nav-controls {
+          justify-content: center !important;
+          gap: 6px !important;
+        }
+        
+        .nav-btn {
+          padding: 5px 10px !important;
+          font-size: 0.8em !important;
+          min-height: 32px !important;
+          flex: 1;
+          max-width: 80px;
+          justify-content: center;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .nav-btn {
+          font-size: 0.75em !important;
+          padding: 4px 8px !important;
+          min-height: 30px !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -673,9 +607,6 @@ export class ModernInterface {
     switch (action) {
     case 'help':
       this.showHelpModal();
-      break;
-    case 'settings':
-      this.showSettingsModal();
       break;
     case 'reset-view':
       // 发送重置视角事件
@@ -756,9 +687,9 @@ export class ModernInterface {
   styleControlPanel(panel) {
     panel.style.cssText = `
       position: fixed;
-      top: 80px;
-      right: 20px;
-      width: 320px;
+      top: 70px;
+      right: 15px;
+      width: 280px;
       background: rgba(26, 26, 26, 0.95);
       backdrop-filter: blur(10px);
       border: 1px solid var(--color-primary);
@@ -778,14 +709,14 @@ export class ModernInterface {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 20px;
+        padding: 12px 15px;
         border-bottom: 1px solid var(--color-surface);
       }
       
       .panel-header h2 {
         margin: 0;
         color: var(--color-primary);
-        font-size: 1.2em;
+        font-size: 1.1em;
         font-weight: 400;
       }
       
@@ -794,74 +725,163 @@ export class ModernInterface {
         border: none;
         color: var(--color-text);
         cursor: pointer;
-        font-size: 1.5em;
+        font-size: 1.3em;
+        padding: 4px;
+        min-height: 32px;
+        min-width: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       
       .panel-content {
-        padding: 20px;
+        padding: 15px;
       }
       
       .control-section {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
       
       .control-section h3 {
-        margin: 0 0 12px 0;
+        margin: 0 0 10px 0;
         color: var(--color-secondary);
-        font-size: 1em;
+        font-size: 0.95em;
         font-weight: 500;
       }
       
       .time-controls, .observation-controls, .focus-controls {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
       }
       
       .observation-controls label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         color: var(--color-secondary);
-        font-size: 0.9em;
+        font-size: 0.85em;
       }
       
       .focus-controls {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 6px;
+        gap: 5px;
       }
       
       .control-btn {
         background: var(--color-surface);
         border: 1px solid var(--color-primary);
         color: var(--color-primary);
-        padding: 8px 12px;
+        padding: 6px 10px;
         border-radius: 6px;
         cursor: pointer;
         transition: var(--transition-fast);
-        font-size: 1.2em;
+        font-size: 0.8em;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
       }
       
-      .control-btn:hover {
+      .control-btn:hover,
+      .control-btn:active {
         background: var(--color-primary);
         color: var(--color-background);
       }
       
       select {
         width: 100%;
-        padding: 8px;
+        padding: 6px;
         background: var(--color-surface);
         border: 1px solid var(--color-text-secondary);
         border-radius: 4px;
         color: var(--color-text);
-        margin-bottom: 8px;
+        margin-bottom: 6px;
+        font-size: 0.85em;
       }
       
       .speed-display {
-        margin-top: 8px;
+        margin-top: 6px;
         color: var(--color-text-secondary);
-        font-size: 0.9em;
+        font-size: 0.8em;
+      }
+      
+      /* 移动端优化 */
+      @media (max-width: 768px) {
+        .modern-control-panel {
+          position: fixed !important;
+          bottom: 15px !important;
+          left: 10px !important;
+          right: 10px !important;
+          top: auto !important;
+          width: auto !important;
+          max-height: 40vh !important;
+          overflow-y: auto !important;
+        }
+        
+        .panel-content {
+          padding: 12px !important;
+        }
+        
+        .control-section {
+          margin-bottom: 15px !important;
+        }
+        
+        .control-section h3 {
+          font-size: 0.9em !important;
+          margin-bottom: 8px !important;
+        }
+        
+        .time-controls {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 5px !important;
+        }
+        
+        .focus-controls {
+          grid-template-columns: 1fr 1fr 1fr !important;
+          gap: 4px !important;
+        }
+        
+        .control-btn {
+          font-size: 0.75em !important;
+          padding: 8px 6px !important;
+          min-height: 40px !important;
+        }
+        
+        .panel-header {
+          padding: 10px 12px !important;
+        }
+        
+        .panel-header h2 {
+          font-size: 1em !important;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .modern-control-panel {
+          bottom: 10px !important;
+          left: 5px !important;
+          right: 5px !important;
+          max-height: 35vh !important;
+        }
+        
+        .time-controls {
+          grid-template-columns: 1fr 1fr !important;
+        }
+        
+        .focus-controls {
+          grid-template-columns: 1fr !important;
+          gap: 6px !important;
+        }
+        
+        .control-btn {
+          font-size: 0.7em !important;
+          min-height: 42px !important;
+          padding: 10px 8px !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -1029,13 +1049,14 @@ export class ModernInterface {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px;
+        padding: 15px 20px;
         border-bottom: 1px solid var(--color-surface);
       }
       
       .modal-header h2 {
         margin: 0;
         color: var(--color-primary);
+        font-size: 1.2em;
       }
       
       .modal-close {
@@ -1050,19 +1071,27 @@ export class ModernInterface {
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+      
+      .modal-close:hover,
+      .modal-close:active {
+        background: rgba(255, 255, 255, 0.1);
       }
       
       .modal-body {
-        padding: 20px;
+        padding: 15px 20px 20px;
       }
       
       .help-section {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
       
       .help-section h3 {
         color: var(--color-secondary);
-        margin: 0 0 12px 0;
+        margin: 0 0 10px 0;
+        font-size: 1.05em;
       }
       
       .help-section ul {
@@ -1071,8 +1100,93 @@ export class ModernInterface {
       }
       
       .help-section li {
-        margin-bottom: 8px;
+        margin-bottom: 6px;
+        line-height: 1.4;
+        font-size: 0.9em;
+      }
+      
+      .help-section p {
         line-height: 1.5;
+        font-size: 0.9em;
+        margin-bottom: 10px;
+      }
+      
+      /* 移动端优化 */
+      @media (max-width: 768px) {
+        .modal-content {
+          width: 95% !important;
+          max-width: none !important;
+          max-height: 85vh !important;
+          top: 50% !important;
+          transform: translate(-50%, -50%) !important;
+        }
+        
+        .modal-header {
+          padding: 12px 15px !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        .modal-header h2 {
+          font-size: 1.1em !important;
+        }
+        
+        .modal-close {
+          width: 36px !important;
+          height: 36px !important;
+          font-size: 1.3em !important;
+        }
+        
+        .modal-body {
+          padding: 12px 15px 15px !important;
+        }
+        
+        .help-section {
+          margin-bottom: 15px !important;
+        }
+        
+        .help-section h3 {
+          font-size: 1em !important;
+          margin-bottom: 8px !important;
+        }
+        
+        .help-section ul {
+          padding-left: 15px !important;
+        }
+        
+        .help-section li {
+          font-size: 0.85em !important;
+          line-height: 1.3 !important;
+          margin-bottom: 5px !important;
+        }
+        
+        .help-section p {
+          font-size: 0.85em !important;
+          line-height: 1.4 !important;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .modal-content {
+          width: 98% !important;
+          max-height: 90vh !important;
+        }
+        
+        .modal-header {
+          padding: 10px 12px !important;
+        }
+        
+        .modal-header h2 {
+          font-size: 1em !important;
+        }
+        
+        .modal-body {
+          padding: 10px 12px 12px !important;
+        }
+        
+        .help-section li,
+        .help-section p {
+          font-size: 0.8em !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -1116,16 +1230,6 @@ export class ModernInterface {
     }
   }
 
-  showSettingsModal() {
-    this.toggleAccessibilityPanel();
-  }
-
-  toggleAccessibilityPanel() {
-    const panel = document.getElementById('accessibility-panel');
-    if (panel) {
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    }
-  }
 
   /**
    * 设置事件监听

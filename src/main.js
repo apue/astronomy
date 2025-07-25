@@ -343,7 +343,6 @@ class AstronomyApp {
     modernInterface.createModernNavigation();
     modernInterface.createModernControlPanel();
     modernInterface.createHelpModal();
-    modernInterface.createModernLoadingIndicator();
 
     // 初始化UI集成系统
     await uiIntegration.initialize();
@@ -384,24 +383,9 @@ class AstronomyApp {
           uiIntegration.showTutorialSelector();
         }
         break;
-      case 'a':
-        // 显示/隐藏无障碍面板
-        modernInterface.toggleAccessibilityPanel();
-        break;
       case 'h':
         // 显示帮助 - 使用tooltip系统显示键盘快捷键
         tooltipSystem.showKeyboardShortcuts();
-        break;
-      case 's':
-        // 显示设置
-        modernInterface.showSettingsModal();
-        break;
-      case 'l':
-        // 切换主题
-        const themes = ['dark', 'light', 'high-contrast'];
-        const current = modernInterface.theme;
-        const nextIndex = (themes.indexOf(current) + 1) % themes.length;
-        modernInterface.setTheme(themes[nextIndex]);
         break;
       case 'q':
         // 显示性能报告
@@ -735,9 +719,6 @@ class AstronomyApp {
     ║                                                              ║
     ║  🎨 界面控制：                                               ║
     ║  - H键：显示帮助中心                                        ║
-    ║  - S键：显示设置面板                                        ║
-    ║  - A键：显示无障碍设置                                      ║
-    ║  - L键：切换主题模式                                        ║
     ╚═══════════════════════════════════════════════════════════════╝
     `);
   }
