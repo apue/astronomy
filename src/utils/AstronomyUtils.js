@@ -127,7 +127,8 @@ export class AstronomyUtils {
     // 金星轨道参数（VSOP87简化）
     const L0 = 181.97980085 + 58517.81567428 * T + 0.00000165 * T * T;
     const e0 = 0.00682069 - 0.00004774 * T + 0.000000091 * T * T;
-    const a = 0.72332102; // AU
+    // 使用精确的0.723作为金星轨道半径，与SceneManager.js保持一致
+    const a = 0.723; // AU (Venus orbit ratio)
 
     const L = ThreeMath.degToRad(L0);
     const e = e0;

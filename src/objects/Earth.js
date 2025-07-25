@@ -193,15 +193,37 @@ export class Earth extends CelestialBody {
   }
 
   calculatePosition(julianDate) {
-    // 从AstronomyUtils获取地球位置（天文单位）
-    const position = AstronomyUtils.calculateEarthPosition(julianDate);
+    // 直接计算轨道位置，确保地球严格位于轨道上
+    // 不再依赖AstronomyUtils的计算结果
     
-    // 使用轨道半径8.0（而不是DISTANCE_SCALE=1000）来匹配轨道
+    // 参数
     const earthOrbitRadius = 8.0;
-    const scaledPosition = position.clone().multiplyScalar(earthOrbitRadius);
     
-    console.log(`🌍 地球位置计算 [JD=${julianDate}]: (${scaledPosition.x.toFixed(2)}, ${scaledPosition.y.toFixed(2)}, ${scaledPosition.z.toFixed(2)})`);
-    return scaledPosition;
+    // 计算地球在轨道上的角度
+    // 从J2000.0开始计算天数
+    const daysSinceJ2000 = julianDate - 2451545.0;
+    
+    // 地球公转周期365.256天，角速度约0.0172弧度/天
+    // 角度 = (天数 * 角速度) % (2π)
+    const angularVelocity = (2 * Math.PI) / 365.256363004;
+    const angle = (daysSinceJ2000 * angularVelocity) % (2 * Math.PI);
+    
+    // 计算轨道位置
+    const x = earthOrbitRadius * Math.cos(angle);
+    const z = earthOrbitRadius * Math.sin(angle);
+    const position = new THREE.Vector3(x, 0, z);
+    
+    // 日志输出
+    console.log(`🌍 地球直接计算位置:`);
+    console.log(`🌍 - 公转角度: ${(angle * 180 / Math.PI).toFixed(2)}°`);
+    console.log(`🌍 - 轨道半径: ${earthOrbitRadius.toFixed(2)} 单位`);
+    console.log(`🌍 - 计算位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+    
+    // 验证距离
+    const distance = Math.sqrt(position.x * position.x + position.z * position.z);
+    console.log(`🌍 - 实际距离: ${distance.toFixed(4)} (目标: ${earthOrbitRadius.toFixed(4)})`);
+    
+    return position;
   }
 
   updateLOD(cameraPosition) {

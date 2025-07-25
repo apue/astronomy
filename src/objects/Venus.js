@@ -12,6 +12,11 @@ export class Venus extends CelestialBody {
   constructor(options = {}) {
     const venusData = CELESTIAL_BODIES.VENUS;
 
+    // 精确定义金星轨道半径参数，确保统一
+    const earthOrbitRadius = 8.0; // 地球轨道半径
+    const venusOrbitRatio = 0.723; // 金星轨道比例
+    const venusOrbitRadius = earthOrbitRadius * venusOrbitRatio;
+
     super('Venus', {
       radius: 0.125, // 金星半径设置为太阳半径的1/4（太阳半径为0.5单位）
       mass: venusData.mass,
@@ -20,7 +25,7 @@ export class Venus extends CelestialBody {
       rotationSpeed: (2 * Math.PI) / (Math.abs(venusData.rotationPeriod) * 86400), // 逆向自转
       orbitElements: {
         ...venusData.orbitElements,
-        semiMajorAxis: 8.0 * 0.723, // 金星轨道半径 = 0.723 * 地球轨道
+        semiMajorAxis: venusOrbitRadius, // 明确使用与轨道绘制相同的参数
         inclination: THREE.MathUtils.degToRad(venusData.orbitElements.inclination),
         longitudeOfAscendingNode: THREE.MathUtils.degToRad(venusData.orbitElements.longitudeOfAscendingNode),
         argumentOfPeriapsis: THREE.MathUtils.degToRad(venusData.orbitElements.argumentOfPeriapsis),
@@ -30,7 +35,10 @@ export class Venus extends CelestialBody {
       ...options
     });
 
-    console.log(`♀️ 金星构造函数：半径=${this.radius}，轨道半径=${this.orbitElements.semiMajorAxis}`);
+    console.log(`♀️ 金星构造函数:`);
+    console.log(`♀️ - 半径: ${this.radius} 单位`);
+    console.log(`♀️ - 轨道半径: ${this.orbitElements.semiMajorAxis} 单位 (= ${earthOrbitRadius} × ${venusOrbitRatio})`);
+    console.log(`♀️ - 轨道比例: ${venusOrbitRatio}`);
 
     this.type = 'venus';
     this.atmosphereHeight = this.radius * 0.05;
@@ -216,16 +224,39 @@ export class Venus extends CelestialBody {
   }
 
   calculatePosition(julianDate) {
-    // 从AstronomyUtils获取金星位置（天文单位）
-    const position = AstronomyUtils.calculateVenusPosition(julianDate);
+    // 直接计算轨道位置，确保金星严格位于轨道上
+    // 不再依赖AstronomyUtils的计算结果
     
-    // 使用轨道半径8.0 * 0.723（而不是DISTANCE_SCALE=1000）来匹配轨道
+    // 参数
     const earthOrbitRadius = 8.0;
-    const venusOrbitRatio = 0.723; // 金星轨道半径与地球轨道半径的比例
-    const scaledPosition = position.clone().multiplyScalar(earthOrbitRadius * venusOrbitRatio);
+    const venusOrbitRatio = 0.723; // 金星轨道比例
+    const venusOrbitRadius = earthOrbitRadius * venusOrbitRatio; // 5.784
     
-    console.log(`♀️ 金星位置计算 [JD=${julianDate}]: (${scaledPosition.x.toFixed(2)}, ${scaledPosition.y.toFixed(2)}, ${scaledPosition.z.toFixed(2)})`);
-    return scaledPosition;
+    // 计算金星在轨道上的角度
+    // 从J2000.0开始计算天数
+    const daysSinceJ2000 = julianDate - 2451545.0;
+    
+    // 金星公转周期224.701天，角速度约0.0279弧度/天
+    // 角度 = (天数 * 角速度) % (2π)
+    const angularVelocity = (2 * Math.PI) / 224.701;
+    const angle = (daysSinceJ2000 * angularVelocity) % (2 * Math.PI);
+    
+    // 计算轨道位置
+    const x = venusOrbitRadius * Math.cos(angle);
+    const z = venusOrbitRadius * Math.sin(angle);
+    const position = new THREE.Vector3(x, 0, z);
+    
+    // 日志输出
+    console.log(`♀️ 金星直接计算位置:`);
+    console.log(`♀️ - 公转角度: ${(angle * 180 / Math.PI).toFixed(2)}°`);
+    console.log(`♀️ - 轨道半径: ${venusOrbitRadius.toFixed(2)} 单位`);
+    console.log(`♀️ - 计算位置: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+    
+    // 验证距离
+    const distance = Math.sqrt(position.x * position.x + position.z * position.z);
+    console.log(`♀️ - 实际距离: ${distance.toFixed(4)} (目标: ${venusOrbitRadius.toFixed(4)})`);
+    
+    return position;
   }
 
   updatePosition(julianDate) {
