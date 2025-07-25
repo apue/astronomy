@@ -574,7 +574,7 @@ export class ModernInterface {
   }
 
   /**
-   * 创建现代导航栏
+   * 创建简化的导航栏
    */
   createModernNavigation() {
     const nav = document.createElement('nav');
@@ -586,17 +586,14 @@ export class ModernInterface {
       </div>
       
       <div class="nav-controls">
-        <button class="nav-btn" data-action="help" aria-label="帮助">
-          <span class="icon">❓</span>
+        <button class="nav-btn" data-action="help" aria-label="显示帮助信息" title="查看操作指南和快捷键说明">
           帮助
         </button>
-        <button class="nav-btn" data-action="settings" aria-label="设置">
-          <span class="icon">⚙️</span>
+        <button class="nav-btn" data-action="settings" aria-label="打开设置面板" title="调整界面主题、字体大小等设置">
           设置
         </button>
-        <button class="nav-btn" data-action="accessibility" aria-label="无障碍设置">
-          <span class="icon">♿</span>
-          无障碍
+        <button class="nav-btn" data-action="reset-view" aria-label="重置视角" title="将相机重置到默认位置">
+          重置视角
         </button>
       </div>
     `;
@@ -680,51 +677,72 @@ export class ModernInterface {
     case 'settings':
       this.showSettingsModal();
       break;
-    case 'accessibility':
-      this.toggleAccessibilityPanel();
+    case 'reset-view':
+      // 发送重置视角事件
+      eventSystem.emit('resetCameraView');
+      this.showNotification('视角已重置', 'info', 2000);
       break;
     }
   }
 
   /**
-   * 创建现代控制面板
+   * 创建简化的控制面板
    */
   createModernControlPanel() {
     const panel = document.createElement('div');
     panel.className = 'modern-control-panel';
     panel.innerHTML = `
       <div class="panel-header">
-        <h2>控制面板</h2>
-        <button class="panel-toggle" aria-label="折叠面板">⋯</button>
+        <h2>基础控制</h2>
+        <button class="panel-toggle" aria-label="折叠面板" title="点击折叠或展开控制面板">−</button>
       </div>
       
       <div class="panel-content">
         <div class="control-section">
           <h3>时间控制</h3>
           <div class="time-controls">
-            <button class="control-btn" data-action="play-pause">⏯️</button>
-            <button class="control-btn" data-action="speed-up">⏩</button>
-            <button class="control-btn" data-action="speed-down">⏪</button>
-            <button class="control-btn" data-action="reset">🔄</button>
+            <button class="control-btn" data-action="play-pause" title="播放/暂停时间">
+              播放/暂停
+            </button>
+            <button class="control-btn" data-action="speed-up" title="加快时间速度">
+              加速
+            </button>
+            <button class="control-btn" data-action="speed-down" title="减慢时间速度">
+              减速
+            </button>
+            <button class="control-btn" data-action="reset" title="重置时间到凌日开始">
+              重置时间
+            </button>
           </div>
           <div class="speed-display">
-            <span>速度: </span>
+            <span>当前速度: </span>
             <span id="speed-value">100x</span>
           </div>
         </div>
         
         <div class="control-section">
-          <h3>观测设置</h3>
+          <h3>观测选择</h3>
           <div class="observation-controls">
-            <select id="observation-year" aria-label="选择观测年份">
+            <label for="observation-year">选择观测年份:</label>
+            <select id="observation-year" title="选择要观测的金星凌日年份">
               <option value="1761">1761年金星凌日</option>
               <option value="1769">1769年金星凌日</option>
             </select>
-            <select id="telescope-type" aria-label="选择望远镜类型">
-              <option value="18th_century_refractor">18世纪折射望远镜</option>
-              <option value="quadrant_telescope">象限仪望远镜</option>
-              <option value="achromatic_refractor">消色差折射望远镜</option>
-            </select>
+          </div>
+        </div>
+        
+        <div class="control-section">
+          <h3>快速聚焦</h3>
+          <div class="focus-controls">
+            <button class="control-btn" data-action="focus-sun" title="聚焦到太阳">
+              聚焦太阳
+            </button>
+            <button class="control-btn" data-action="focus-earth" title="聚焦到地球">
+              聚焦地球
+            </button>
+            <button class="control-btn" data-action="focus-venus" title="聚焦到金星">
+              聚焦金星
+            </button>
           </div>
         </div>
       </div>
@@ -794,10 +812,24 @@ export class ModernInterface {
         font-weight: 500;
       }
       
-      .time-controls, .observation-controls {
+      .time-controls, .observation-controls, .focus-controls {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      
+      .observation-controls label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--color-secondary);
+        font-size: 0.9em;
+      }
+      
+      .focus-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
       }
       
       .control-btn {
@@ -843,7 +875,7 @@ export class ModernInterface {
     toggleBtn.addEventListener('click', () => {
       const isExpanded = content.style.display !== 'none';
       content.style.display = isExpanded ? 'none' : 'block';
-      toggleBtn.textContent = isExpanded ? '⋮' : '⋯';
+      toggleBtn.textContent = isExpanded ? '+' : '−';
     });
 
     // 设置控制按钮
@@ -854,71 +886,97 @@ export class ModernInterface {
       });
     });
 
-    // 设置选择框
+    // 设置年份选择框
     const yearSelect = panel.querySelector('#observation-year');
-    const telescopeSelect = panel.querySelector('#telescope-type');
-
-    yearSelect.addEventListener('change', (e) => {
-      eventSystem.emit('observationYearChanged', { year: parseInt(e.target.value) });
-    });
-
-    telescopeSelect.addEventListener('change', (e) => {
-      eventSystem.emit('telescopeTypeChanged', { type: e.target.value });
-    });
+    if (yearSelect) {
+      yearSelect.addEventListener('change', (e) => {
+        eventSystem.emit('observationYearChanged', { year: parseInt(e.target.value) });
+        this.showNotification(`已切换到${e.target.value}年金星凌日`, 'info', 2000);
+      });
+    }
   }
 
   handleControlAction(action) {
     switch (action) {
     case 'play-pause':
       eventSystem.emit('timeControlAction', { action: 'toggle' });
+      this.showNotification('时间播放状态已切换', 'info', 1500);
       break;
     case 'speed-up':
       eventSystem.emit('timeControlAction', { action: 'speedUp' });
+      this.showNotification('时间速度已加快', 'info', 1500);
       break;
     case 'speed-down':
       eventSystem.emit('timeControlAction', { action: 'speedDown' });
+      this.showNotification('时间速度已减慢', 'info', 1500);
       break;
     case 'reset':
       eventSystem.emit('timeControlAction', { action: 'reset' });
+      this.showNotification('时间已重置到凌日开始', 'info', 2000);
+      break;
+    case 'focus-sun':
+      eventSystem.emit('focusCelestialBody', { target: 'sun' });
+      this.showNotification('已聚焦到太阳', 'info', 1500);
+      break;
+    case 'focus-earth':
+      eventSystem.emit('focusCelestialBody', { target: 'earth' });
+      this.showNotification('已聚焦到地球', 'info', 1500);
+      break;
+    case 'focus-venus':
+      eventSystem.emit('focusCelestialBody', { target: 'venus' });
+      this.showNotification('已聚焦到金星', 'info', 1500);
       break;
     }
   }
 
   /**
-   * 创建帮助模态框
+   * 创建简化的帮助模态框
    */
   createHelpModal() {
     const modal = document.createElement('div');
+    modal.id = 'help-modal';
     modal.className = 'help-modal';
     modal.innerHTML = `
       <div class="modal-backdrop" aria-hidden="true"></div>
       <div class="modal-content" role="dialog" aria-labelledby="help-title">
         <div class="modal-header">
-          <h2 id="help-title">帮助中心</h2>
+          <h2 id="help-title">操作指南</h2>
           <button class="modal-close" aria-label="关闭帮助">×</button>
         </div>
         <div class="modal-body">
           <section class="help-section">
-            <h3>基本操作</h3>
+            <h3>🖱️ 鼠标控制</h3>
             <ul>
-              <li><strong>鼠标拖拽：</strong>旋转视角</li>
-              <li><strong>滚轮：</strong>缩放视图</li>
-              <li><strong>空格键：</strong>暂停/继续时间</li>
-              <li><strong>方向键：</strong>调整时间速度</li>
+              <li><strong>拖拽：</strong>旋转视角，观察不同角度的天体</li>
+              <li><strong>滚轮：</strong>缩放视图，靠近或远离天体</li>
+              <li><strong>点击天体：</strong>查看天体详细信息</li>
             </ul>
           </section>
           
           <section class="help-section">
-            <h3>快捷键</h3>
+            <h3>⌨️ 键盘快捷键</h3>
             <ul>
-              <li><strong>1/2/3：</strong>聚焦太阳/地球/金星</li>
-              <li><strong>R：</strong>重置相机视角</li>
-              <li><strong>T：</strong>显示凌日信息</li>
-              <li><strong>C：</strong>显示/隐藏时间控制</li>
-              <li><strong>O：</strong>显示历史观测点</li>
-              <li><strong>G：</strong>显示教育引导</li>
-              <li><strong>P：</strong>显示视差计算</li>
+              <li><strong>空格键：</strong>快速暂停/播放时间</li>
+              <li><strong>数字键 1：</strong>聚焦到太阳</li>
+              <li><strong>数字键 2：</strong>聚焦到地球</li>
+              <li><strong>数字键 3：</strong>聚焦到金星</li>
+              <li><strong>R键：</strong>重置相机到默认视角</li>
+              <li><strong>C键：</strong>显示/隐藏时间控制面板</li>
             </ul>
+          </section>
+
+          <section class="help-section">
+            <h3>🎛️ 界面控制</h3>
+            <ul>
+              <li><strong>右侧控制面板：</strong>控制时间播放和速度</li>
+              <li><strong>快速跳转按钮：</strong>直接跳到金星凌日的关键时刻</li>
+              <li><strong>顶部导航栏：</strong>访问帮助、设置和重置功能</li>
+            </ul>
+          </section>
+
+          <section class="help-section">
+            <h3>🌟 关于金星凌日</h3>
+            <p>金星凌日是指金星在地球和太阳之间经过，在太阳表面留下黑色小圆点的天文现象。18世纪的天文学家通过观测不同地点的凌日时间差异，成功计算出了地球到太阳的距离。</p>
           </section>
         </div>
       </div>
@@ -1043,9 +1101,19 @@ export class ModernInterface {
    * 显示帮助
    */
   showHelpModal() {
-    const modal = document.getElementById('help-modal') || this.createHelpModal();
-    modal.style.display = 'block';
-    modal.querySelector('.modal-close').focus();
+    let modal = document.getElementById('help-modal');
+    if (!modal) {
+      this.createHelpModal();
+      modal = document.getElementById('help-modal');
+    }
+    
+    if (modal) {
+      modal.style.display = 'block';
+      const closeBtn = modal.querySelector('.modal-close');
+      if (closeBtn) {
+        closeBtn.focus();
+      }
+    }
   }
 
   showSettingsModal() {

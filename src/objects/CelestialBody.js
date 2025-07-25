@@ -75,25 +75,35 @@ export class CelestialBody {
    * 加载纹理
    */
   async loadTexture() {
-    if (!this.textureUrl) return;
+    if (!this.textureUrl) {
+      console.log(`No texture URL provided for ${this.name}, using placeholder`);
+      this.texture = this.generatePlaceholderTexture();
+      return;
+    }
 
     try {
+      console.log(`Loading texture for ${this.name}: ${this.textureUrl}`);
       const textureLoader = new THREE.TextureLoader();
       this.texture = await new Promise((resolve, reject) => {
         textureLoader.load(
           this.textureUrl,
-          texture => resolve(texture),
+          texture => {
+            console.log(`✅ Successfully loaded texture for ${this.name}`);
+            resolve(texture);
+          },
           undefined,
-          reject
+          error => {
+            console.warn(`❌ Failed to load texture for ${this.name}:`, error);
+            reject(error);
+          }
         );
       });
 
       // 优化纹理设置
       this.optimizeTexture();
     } catch (error) {
-      console.warn(`Failed to load texture for ${this.name}:`, error);
-      // 使用占位符纹理
-      const { TextureGenerator } = await import('../utils/TextureGenerator.js');
+      console.warn(`🔄 Using placeholder texture for ${this.name} due to loading error:`, error.message);
+      // 使用改进的占位符纹理
       this.texture = this.generatePlaceholderTexture();
     }
   }
@@ -103,28 +113,109 @@ export class CelestialBody {
    */
   generatePlaceholderTexture() {
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 128;
+    canvas.width = 512;
+    canvas.height = 256;
 
     const context = canvas.getContext('2d');
 
-    // 创建渐变背景
-    const gradient = context.createLinearGradient(0, 0, 256, 128);
-    gradient.addColorStop(0, `#${this.color.toString(16).padStart(6, '0')}`);
-    gradient.addColorStop(1, '#000000');
-
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, 256, 128);
-
-    // 添加标签
-    context.fillStyle = '#FFFFFF';
-    context.font = '20px Arial';
-    context.textAlign = 'center';
-    context.fillText(this.name, 128, 64);
+    // 根据天体类型创建不同的占位符纹理
+    if (this.name.toLowerCase() === 'sun') {
+      // 为太阳创建特殊的占位符纹理
+      this.generateSunPlaceholderTexture(context, canvas.width, canvas.height);
+    } else {
+      // 为其他天体创建基础占位符纹理
+      this.generateBasicPlaceholderTexture(context, canvas.width, canvas.height);
+    }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
+    this.optimizeTexture();
     return texture;
+  }
+
+  /**
+   * 生成太阳占位符纹理
+   */
+  generateSunPlaceholderTexture(context, width, height) {
+    // 创建径向渐变，模拟太阳外观
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2;
+
+    const gradient = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    gradient.addColorStop(0, '#FFFF99');    // 中心亮黄色
+    gradient.addColorStop(0.3, '#FFD700');  // 金黄色
+    gradient.addColorStop(0.6, '#FF8C00');  // 橙色
+    gradient.addColorStop(0.8, '#FF4500');  // 红橙色
+    gradient.addColorStop(1, '#8B0000');    // 深红色边缘
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+
+    // 添加一些随机的太阳黑子效果
+    context.fillStyle = 'rgba(139, 0, 0, 0.6)';
+    for (let i = 0; i < 8; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const spotRadius = 3 + Math.random() * 8;
+      context.beginPath();
+      context.arc(x, y, spotRadius, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    // 添加标签
+    context.fillStyle = '#FFFFFF';
+    context.font = 'bold 24px Arial';
+    context.textAlign = 'center';
+    context.shadowColor = '#000000';
+    context.shadowBlur = 4;
+    context.fillText('☀️ 太阳 (占位符)', centerX, centerY + 8);
+  }
+
+  /**
+   * 生成基础占位符纹理
+   */
+  generateBasicPlaceholderTexture(context, width, height) {
+    // 创建渐变背景
+    const gradient = context.createLinearGradient(0, 0, width, height);
+    const colorHex = `#${this.color.toString(16).padStart(6, '0')}`;
+    gradient.addColorStop(0, colorHex);
+    gradient.addColorStop(0.5, this.adjustBrightness(colorHex, -0.3));
+    gradient.addColorStop(1, this.adjustBrightness(colorHex, -0.6));
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, width, height);
+
+    // 添加一些纹理效果
+    context.fillStyle = `rgba(255, 255, 255, 0.1)`;
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = 2 + Math.random() * 6;
+      context.fillRect(x, y, size, size);
+    }
+
+    // 添加标签
+    context.fillStyle = '#FFFFFF';
+    context.font = 'bold 20px Arial';
+    context.textAlign = 'center';
+    context.shadowColor = '#000000';
+    context.shadowBlur = 2;
+    context.fillText(`${this.name} (占位符)`, width / 2, height / 2 + 8);
+  }
+
+  /**
+   * 调整颜色亮度
+   */
+  adjustBrightness(hexColor, factor) {
+    const num = parseInt(hexColor.replace('#', ''), 16);
+    const amt = Math.round(2.55 * factor * 100);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return `#${(0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1)}`;
   }
 
   /**
@@ -176,17 +267,25 @@ export class CelestialBody {
    * 创建材质
    */
   createMaterial() {
+    console.log(`🎨 Creating material for ${this.name}...`);
+    console.log(`🎨 Color: 0x${this.color.toString(16)}`);
+    console.log(`🎨 Emissive: 0x${this.emissive.toString(16)}`);
+    console.log(`🎨 Emissive intensity: ${this.emissiveIntensity}`);
+    console.log(`🎨 Has texture: ${this.texture ? 'Yes' : 'No'}`);
+
     const baseOptions = {
       color: this.color
     };
 
     if (this.texture) {
       baseOptions.map = this.texture;
+      console.log(`🎨 Texture applied to material`);
     }
 
     // 根据天体类型选择材质
     if (this.emissiveIntensity > 0) {
       // 发光天体使用MeshStandardMaterial支持emissive属性
+      console.log(`🎨 Creating emissive material (MeshStandardMaterial)`);
       this.material = new THREE.MeshStandardMaterial({
         ...baseOptions,
         emissive: this.emissive,
@@ -194,14 +293,27 @@ export class CelestialBody {
         roughness: 1.0,
         metalness: 0.0
       });
+      
+      // 对于太阳，确保纹理不被发光效果完全覆盖
+      if (this.name.toLowerCase() === 'sun') {
+        console.log(`🎨 Applying special Sun material settings`);
+        this.material.emissiveIntensity = Math.min(this.emissiveIntensity, 0.3);
+        // 确保纹理可见
+        if (this.texture) {
+          this.material.map = this.texture;
+        }
+      }
     } else {
       // 非发光天体使用MeshPhongMaterial
+      console.log(`🎨 Creating non-emissive material (MeshPhongMaterial)`);
       this.material = new THREE.MeshPhongMaterial({
         ...baseOptions,
         shininess: 30,
         specular: 0x111111
       });
     }
+
+    console.log(`🎨 Material created for ${this.name}:`, this.material.type);
   }
 
   /**

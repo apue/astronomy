@@ -13,14 +13,14 @@ export class Earth extends CelestialBody {
     const earthData = CELESTIAL_BODIES.EARTH;
 
     super('Earth', {
-      radius: earthData.radius / SCALE_FACTORS.SIZE_SCALE,
+      radius: 0.25, // 地球半径设置为太阳半径的1/2（太阳半径为0.5单位）
       mass: earthData.mass,
       color: earthData.color,
       textureUrl: TEXTURE_PATHS.EARTH.day,
       rotationSpeed: (2 * Math.PI) / (earthData.rotationPeriod * 86400), // 弧度/秒
       orbitElements: {
         ...earthData.orbitElements,
-        semiMajorAxis: earthData.orbitElements.semiMajorAxis * SCALE_FACTORS.DISTANCE_SCALE,
+        semiMajorAxis: 8.0, // 固定地球轨道半径为8单位
         inclination: THREE.MathUtils.degToRad(earthData.orbitElements.inclination),
         longitudeOfAscendingNode: THREE.MathUtils.degToRad(earthData.orbitElements.longitudeOfAscendingNode),
         argumentOfPeriapsis: THREE.MathUtils.degToRad(earthData.orbitElements.argumentOfPeriapsis),
@@ -30,6 +30,8 @@ export class Earth extends CelestialBody {
       ...options
     });
 
+    console.log(`🌍 地球构造函数：半径=${this.radius}，轨道半径=${this.orbitElements.semiMajorAxis}`);
+    
     this.type = 'earth';
     this.atmosphereHeight = this.radius * 0.1;
     this.cloudRotationSpeed = 0.001;
@@ -40,13 +42,22 @@ export class Earth extends CelestialBody {
 
   async initializeEarth() {
     try {
+      console.log(`🌍 开始初始化地球...`);
       await this.loadEarthTextures();
       this.createAtmosphere();
       this.createClouds();
       this.createNightSide();
-      console.log('Earth initialized with atmosphere and clouds');
+      console.log('🌍 地球已初始化，具有大气层和云层');
+      console.log(`🌍 地球位置：(${this.position.x}, ${this.position.y}, ${this.position.z})`);
+      console.log(`🌍 地球网格对象：${this.mesh ? '已创建' : '未创建'}`);
+      if (this.mesh) {
+        console.log(`🌍 地球网格位置：(${this.mesh.position.x}, ${this.mesh.position.y}, ${this.mesh.position.z})`);
+        console.log(`🌍 地球材质：${this.mesh.material ? this.mesh.material.type : '未设置'}`);
+        console.log(`🌍 地球可见性：${this.mesh.visible}`);
+        console.log(`🌍 地球父对象：${this.mesh.parent ? this.mesh.parent.name || '未命名对象' : '无父对象'}`);
+      }
     } catch (error) {
-      console.warn('Failed to initialize earth visuals:', error);
+      console.warn('❌ 地球视觉效果初始化失败:', error);
     }
   }
 
@@ -58,8 +69,9 @@ export class Earth extends CelestialBody {
       this.dayTexture = await new Promise((resolve, reject) => {
         textureLoader.load(TEXTURE_PATHS.EARTH.day, resolve, undefined, reject);
       });
+      console.log(`🌍 地球日间纹理加载成功: ${TEXTURE_PATHS.EARTH.day}`);
     } catch (error) {
-      console.warn('Failed to load Earth day texture:', error);
+      console.warn('❌ 地球日间纹理加载失败:', error);
     }
 
     // 尝试加载可选纹理（静默处理失败）
@@ -69,7 +81,7 @@ export class Earth extends CelestialBody {
           textureLoader.load(path, resolve, undefined, reject);
         });
       } catch (error) {
-        console.log(`Optional texture ${name} not available:`, path);
+        console.log(`可选纹理 ${name} 不可用:`, path);
         return null;
       }
     };
@@ -181,8 +193,15 @@ export class Earth extends CelestialBody {
   }
 
   calculatePosition(julianDate) {
-    return AstronomyUtils.calculateEarthPosition(julianDate)
-      .multiplyScalar(SCALE_FACTORS.DISTANCE_SCALE);
+    // 从AstronomyUtils获取地球位置（天文单位）
+    const position = AstronomyUtils.calculateEarthPosition(julianDate);
+    
+    // 使用轨道半径8.0（而不是DISTANCE_SCALE=1000）来匹配轨道
+    const earthOrbitRadius = 8.0;
+    const scaledPosition = position.clone().multiplyScalar(earthOrbitRadius);
+    
+    console.log(`🌍 地球位置计算 [JD=${julianDate}]: (${scaledPosition.x.toFixed(2)}, ${scaledPosition.y.toFixed(2)}, ${scaledPosition.z.toFixed(2)})`);
+    return scaledPosition;
   }
 
   updateLOD(cameraPosition) {
@@ -193,6 +212,16 @@ export class Earth extends CelestialBody {
       const distance = this.position.distanceTo(cameraPosition);
       const opacity = Math.min(0.3, Math.max(0.1, 50 / distance));
       this.atmosphereMesh.material.opacity = opacity;
+    }
+  }
+
+  updatePosition(julianDate) {
+    super.updatePosition(julianDate);
+    console.log(`🌍 地球位置已更新 [JD=${julianDate}]: (${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)})`);
+    if (this.mesh) {
+      console.log(`🌍 地球网格位置: (${this.mesh.position.x.toFixed(2)}, ${this.mesh.position.y.toFixed(2)}, ${this.mesh.position.z.toFixed(2)})`);
+    } else {
+      console.log(`❌ 地球网格对象不存在!`);
     }
   }
 

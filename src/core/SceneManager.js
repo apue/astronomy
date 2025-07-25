@@ -51,8 +51,8 @@ export class SceneManager {
       this.setupScene();
       this.handleResize();
 
-      // 创建一个简单的测试场景
-      await this.createTestScene();
+      // 创建基础场景元素（轨道线等）
+      await this.createSceneElements();
 
       console.log('SceneManager initialized successfully');
       return this;
@@ -150,6 +150,16 @@ export class SceneManager {
       this.updateCelestialPositions(data.time);
     });
 
+    // 监听重置相机视角事件
+    eventSystem.subscribe('resetCameraView', () => {
+      this.resetCamera();
+    });
+
+    // 监听聚焦天体事件
+    eventSystem.subscribe('focusCelestialBody', (data) => {
+      this.focusOnCelestialBody(data.target);
+    });
+
     // 监听窗口大小变化
     window.addEventListener('resize', () => this.handleResize());
   }
@@ -189,57 +199,59 @@ export class SceneManager {
     this.scene.add(starField);
   }
 
-  async createTestScene() {
+  async createSceneElements() {
     try {
-      // 创建太阳
-      const sun = new Sun();
-      await sun.initialize();
-      this.addCelestialBody(sun);
-
-      // 创建地球
-      const earth = new Earth();
-      await earth.initialize();
-      this.addCelestialBody(earth);
-
-      // 创建金星
-      const venus = new Venus();
-      await venus.initialize();
-      this.addCelestialBody(venus);
-
-      // 创建轨道线
+      console.log('🎬 === CREATING SCENE ELEMENTS ===');
+      
+      // 只创建轨道线等场景元素，天体由main.js创建
+      console.log('🪐 Creating orbit lines...');
       this.createOrbitLines();
+      console.log('🪐 Orbit lines COMPLETED ✅');
 
-      console.log('Solar system created with realistic celestial bodies');
+      console.log('🎬 === SCENE ELEMENTS CREATION COMPLETED ===');
+      console.log(`📊 Current scene stats: ${this.scene.children.length} objects in scene`);
     } catch (error) {
-      console.error('Failed to create test scene:', error);
+      console.error('❌ Failed to create scene elements:', error);
       throw error;
     }
   }
 
   createOrbitLines() {
+    console.log('🪐 Creating orbit lines...');
+    
     // 地球轨道
-    const earthOrbitGeometry = new THREE.RingGeometry(7.9, 8.1, 64);
+    console.log('🌍 Creating Earth orbit (blue ring)...');
+    const earthOrbitRadius = 8.0; // 基于1 AU = 8 units
+    const earthOrbitGeometry = new THREE.RingGeometry(earthOrbitRadius - 0.1, earthOrbitRadius + 0.1, 64);
     const earthOrbitMaterial = new THREE.MeshBasicMaterial({
-      color: 0x6b93d6,
+      color: 0x6b93d6, // 蓝色
       transparent: true,
       opacity: 0.3,
       side: THREE.DoubleSide,
     });
     const earthOrbit = new THREE.Mesh(earthOrbitGeometry, earthOrbitMaterial);
     earthOrbit.rotation.x = Math.PI / 2;
+    earthOrbit.name = 'EarthOrbit';
     this.scene.add(earthOrbit);
+    console.log(`🌍 Earth orbit: radius=${earthOrbitRadius.toFixed(1)} units (1 AU)`);
 
     // 金星轨道
-    const venusOrbitGeometry = new THREE.RingGeometry(5.7, 5.9, 64);
+    console.log('♀️ Creating Venus orbit (yellow ring)...');
+    const venusOrbitRadius = 8.0 * 0.723; // 金星轨道半径 = 0.723 AU
+    const venusOrbitGeometry = new THREE.RingGeometry(venusOrbitRadius - 0.1, venusOrbitRadius + 0.1, 64);
     const venusOrbitMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffc649,
+      color: 0xffc649, // 黄色
       transparent: true,
       opacity: 0.3,
       side: THREE.DoubleSide,
     });
     const venusOrbit = new THREE.Mesh(venusOrbitGeometry, venusOrbitMaterial);
     venusOrbit.rotation.x = Math.PI / 2;
+    venusOrbit.name = 'VenusOrbit';
     this.scene.add(venusOrbit);
+    console.log(`♀️ Venus orbit: radius=${venusOrbitRadius.toFixed(1)} units (0.723 AU)`);
+    
+    console.log(`🪐 Orbit lines created. Total scene objects: ${this.scene.children.length}`);
   }
 
   addCelestialBody(body) {
@@ -248,10 +260,30 @@ export class SceneManager {
       return;
     }
 
+    console.log(`🌍 添加天体: ${body.name}`);
+    console.log(`🌍 天体网格:`, body.mesh);
+    console.log(`🌍 天体材质:`, body.mesh.material);
+    console.log(`🌍 天体位置:`, body.mesh.position);
+    console.log(`🌍 天体子对象数量:`, body.mesh.children.length);
+    console.log(`🌍 天体可见性:`, body.mesh.visible);
+    console.log(`🌍 天体缩放:`, body.mesh.scale);
+
     this.celestialBodies.set(body.name, body);
     this.scene.add(body.mesh);
 
-    console.log(`Added celestial body: ${body.name}`);
+    console.log(`✅ 已添加天体: ${body.name} 到场景`);
+    console.log(`🌍 场景子对象数量:`, this.scene.children.length);
+    console.log(`🌍 场景中的天体:`, Array.from(this.celestialBodies.keys()).join(', '));
+
+    // 检查天体是否真的添加到场景中
+    setTimeout(() => {
+      const bodyInScene = this.scene.getObjectByName(body.name);
+      console.log(`🔍 检查天体 ${body.name} 是否在场景中: ${bodyInScene ? '是' : '否'}`);
+      if (bodyInScene) {
+        console.log(`🔍 场景中的 ${body.name} 可见性: ${bodyInScene.visible}`);
+        console.log(`🔍 场景中的 ${body.name} 位置: (${bodyInScene.position.x}, ${bodyInScene.position.y}, ${bodyInScene.position.z})`);
+      }
+    }, 100);
   }
 
   /**
@@ -260,10 +292,13 @@ export class SceneManager {
    */
   updateCelestialPositions(time) {
     const julianDate = this.dateToJulian(time);
+    console.log(`🕰️ 更新天体位置，儒略日: ${julianDate}`);
 
-    for (const [_name, body] of this.celestialBodies) {
+    for (const [name, body] of this.celestialBodies) {
+      console.log(`🔄 更新天体: ${name}`);
       if (body.updatePosition) {
         body.updatePosition(julianDate);
+        console.log(`🔄 ${name} 位置已更新: (${body.position.x.toFixed(2)}, ${body.position.y.toFixed(2)}, ${body.position.z.toFixed(2)})`);
       }
     }
 
@@ -373,6 +408,7 @@ export class SceneManager {
     // 更新FPS计数
     this.updateFPS();
 
+
     // 渲染场景
     this.renderer.render(this.scene, this.camera);
 
@@ -381,29 +417,33 @@ export class SceneManager {
   }
 
   animateTestObjects(deltaTime) {
-    const earth = this.scene.getObjectByName('earth');
-    const venus = this.scene.getObjectByName('venus');
-    const sun = this.scene.getObjectByName('sun');
+    // 注释：这个方法是临时动画测试，应该删除或修改它以不覆盖天体的真实位置
+    console.log(`⏱️ 动画帧调用，deltaTime=${deltaTime}`);
+    
+    const earth = this.celestialBodies.get('Earth');
+    const venus = this.celestialBodies.get('Venus');
+    const sun = this.celestialBodies.get('Sun');
 
-    if (earth) {
-      // 地球绕太阳公转
-      earth.rotation.y += deltaTime * 0.5; // 自转
-      const earthAngle = Date.now() * 0.0001;
-      earth.position.x = Math.cos(earthAngle) * 8;
-      earth.position.z = Math.sin(earthAngle) * 8;
+    console.log(`🔎 动画中找到天体: 地球=${!!earth}, 金星=${!!venus}, 太阳=${!!sun}`);
+
+    // 只更新天体的自转，不覆盖位置
+    if (earth?.mesh) {
+      // 只保留自转动画，不改变位置
+      earth.mesh.rotation.y += deltaTime * 0.5;
+      console.log(`🌍 地球只更新自转: ${earth.mesh.rotation.y.toFixed(2)}`);
+      console.log(`🌍 地球当前位置: (${earth.mesh.position.x.toFixed(2)}, ${earth.mesh.position.y.toFixed(2)}, ${earth.mesh.position.z.toFixed(2)})`);
     }
 
-    if (venus) {
-      // 金星绕太阳公转（更快）
-      venus.rotation.y += deltaTime * 0.8;
-      const venusAngle = Date.now() * 0.00016;
-      venus.position.x = Math.cos(venusAngle) * 5.8;
-      venus.position.z = Math.sin(venusAngle) * 5.8;
+    if (venus?.mesh) {
+      // 只保留自转动画，不改变位置
+      venus.mesh.rotation.y += deltaTime * 0.3;
+      console.log(`♀️ 金星只更新自转: ${venus.mesh.rotation.y.toFixed(2)}`);
+      console.log(`♀️ 金星当前位置: (${venus.mesh.position.x.toFixed(2)}, ${venus.mesh.position.y.toFixed(2)}, ${venus.mesh.position.z.toFixed(2)})`);
     }
 
-    if (sun) {
-      // 太阳缓慢自转
-      sun.rotation.y += deltaTime * 0.1;
+    if (sun?.mesh) {
+      sun.mesh.rotation.y += deltaTime * 0.1;
+      console.log(`☀️ 太阳旋转更新: ${sun.mesh.rotation.y.toFixed(2)}`);
     }
   }
 
@@ -456,6 +496,39 @@ export class SceneManager {
     this.camera.lookAt(0, 0, 0);
     this.controls.target.set(0, 0, 0);
     this.controls.update();
+  }
+
+  // 聚焦到指定天体
+  focusOnCelestialBody(targetName) {
+    const body = this.celestialBodies.get(targetName);
+    if (body && body.mesh) {
+      const position = body.mesh.position;
+      let distance = 10; // 默认距离
+
+      // 根据天体大小调整距离
+      if (targetName === 'sun') {
+        distance = 15;
+      } else if (targetName === 'earth') {
+        distance = 8;
+      } else if (targetName === 'venus') {
+        distance = 8;
+      }
+
+      // 设置相机位置
+      this.camera.position.set(
+        position.x + distance,
+        position.y + distance * 0.3,
+        position.z + distance
+      );
+      
+      // 让相机看向天体
+      this.controls.target.copy(position);
+      this.controls.update();
+
+      console.log(`Camera focused on ${targetName}`);
+    } else {
+      console.warn(`Celestial body '${targetName}' not found`);
+    }
   }
 
   // 获取性能信息

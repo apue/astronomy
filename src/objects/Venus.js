@@ -13,14 +13,14 @@ export class Venus extends CelestialBody {
     const venusData = CELESTIAL_BODIES.VENUS;
 
     super('Venus', {
-      radius: venusData.radius / SCALE_FACTORS.SIZE_SCALE,
+      radius: 0.125, // 金星半径设置为太阳半径的1/4（太阳半径为0.5单位）
       mass: venusData.mass,
       color: venusData.color,
       textureUrl: TEXTURE_PATHS.VENUS.surface,
       rotationSpeed: (2 * Math.PI) / (Math.abs(venusData.rotationPeriod) * 86400), // 逆向自转
       orbitElements: {
         ...venusData.orbitElements,
-        semiMajorAxis: venusData.orbitElements.semiMajorAxis * SCALE_FACTORS.DISTANCE_SCALE,
+        semiMajorAxis: 8.0 * 0.723, // 金星轨道半径 = 0.723 * 地球轨道
         inclination: THREE.MathUtils.degToRad(venusData.orbitElements.inclination),
         longitudeOfAscendingNode: THREE.MathUtils.degToRad(venusData.orbitElements.longitudeOfAscendingNode),
         argumentOfPeriapsis: THREE.MathUtils.degToRad(venusData.orbitElements.argumentOfPeriapsis),
@@ -29,6 +29,8 @@ export class Venus extends CelestialBody {
       },
       ...options
     });
+
+    console.log(`♀️ 金星构造函数：半径=${this.radius}，轨道半径=${this.orbitElements.semiMajorAxis}`);
 
     this.type = 'venus';
     this.atmosphereHeight = this.radius * 0.05;
@@ -43,13 +45,22 @@ export class Venus extends CelestialBody {
 
   async initializeVenus() {
     try {
+      console.log(`♀️ 开始初始化金星...`);
       await this.loadVenusTextures();
       this.createDenseAtmosphere();
       this.createSulfuricClouds();
       this.createSurfaceFeatures();
-      console.log('Venus initialized with dense atmosphere and clouds');
+      console.log('♀️ 金星已初始化，具有浓密大气层和云层');
+      console.log(`♀️ 金星位置：(${this.position.x}, ${this.position.y}, ${this.position.z})`);
+      console.log(`♀️ 金星网格对象：${this.mesh ? '已创建' : '未创建'}`);
+      if (this.mesh) {
+        console.log(`♀️ 金星网格位置：(${this.mesh.position.x}, ${this.mesh.position.y}, ${this.mesh.position.z})`);
+        console.log(`♀️ 金星材质：${this.mesh.material ? this.mesh.material.type : '未设置'}`);
+        console.log(`♀️ 金星可见性：${this.mesh.visible}`);
+        console.log(`♀️ 金星父对象：${this.mesh.parent ? this.mesh.parent.name || '未命名对象' : '无父对象'}`);
+      }
     } catch (error) {
-      console.warn('Failed to initialize venus visuals:', error);
+      console.warn('❌ 金星视觉效果初始化失败:', error);
     }
   }
 
@@ -61,8 +72,9 @@ export class Venus extends CelestialBody {
       this.surfaceTexture = await new Promise((resolve, reject) => {
         textureLoader.load(TEXTURE_PATHS.VENUS.surface, resolve, undefined, reject);
       });
+      console.log(`♀️ 金星表面纹理加载成功: ${TEXTURE_PATHS.VENUS.surface}`);
     } catch (error) {
-      console.warn('Failed to load Venus surface texture:', error);
+      console.warn('❌ 金星表面纹理加载失败:', error);
     }
 
     // 尝试加载可选纹理（静默处理失败）
@@ -72,7 +84,7 @@ export class Venus extends CelestialBody {
           textureLoader.load(path, resolve, undefined, reject);
         });
       } catch (error) {
-        console.log(`Optional texture ${name} not available:`, path);
+        console.log(`可选纹理 ${name} 不可用:`, path);
         return null;
       }
     };
@@ -204,8 +216,26 @@ export class Venus extends CelestialBody {
   }
 
   calculatePosition(julianDate) {
-    return AstronomyUtils.calculateVenusPosition(julianDate)
-      .multiplyScalar(SCALE_FACTORS.DISTANCE_SCALE);
+    // 从AstronomyUtils获取金星位置（天文单位）
+    const position = AstronomyUtils.calculateVenusPosition(julianDate);
+    
+    // 使用轨道半径8.0 * 0.723（而不是DISTANCE_SCALE=1000）来匹配轨道
+    const earthOrbitRadius = 8.0;
+    const venusOrbitRatio = 0.723; // 金星轨道半径与地球轨道半径的比例
+    const scaledPosition = position.clone().multiplyScalar(earthOrbitRadius * venusOrbitRatio);
+    
+    console.log(`♀️ 金星位置计算 [JD=${julianDate}]: (${scaledPosition.x.toFixed(2)}, ${scaledPosition.y.toFixed(2)}, ${scaledPosition.z.toFixed(2)})`);
+    return scaledPosition;
+  }
+
+  updatePosition(julianDate) {
+    super.updatePosition(julianDate);
+    console.log(`♀️ 金星位置已更新 [JD=${julianDate}]: (${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)})`);
+    if (this.mesh) {
+      console.log(`♀️ 金星网格位置: (${this.mesh.position.x.toFixed(2)}, ${this.mesh.position.y.toFixed(2)}, ${this.mesh.position.z.toFixed(2)})`);
+    } else {
+      console.log(`❌ 金星网格对象不存在!`);
+    }
   }
 
   updateLOD(cameraPosition) {

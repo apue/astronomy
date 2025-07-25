@@ -33,6 +33,16 @@ class AstronomyApp {
     this.celestialBodies = new Map();
     this.textureGenerator = new TextureGenerator();
     this.telescopeSimulation = null;
+    this.debugMode = false;
+
+    // 检查URL参数来设置debug模式
+    const urlParams = new URLSearchParams(window.location.search);
+    this.debugMode = urlParams.has('debug') || urlParams.get('debug') === 'true';
+    
+    if (this.debugMode) {
+      console.log('🔧 DEBUG MODE ENABLED');
+      console.log('🔧 Sun will be rendered as red sphere instead of textured surface');
+    }
 
     // 性能优化器初始化
     this.initializePerformanceOptimization();
@@ -43,8 +53,7 @@ class AstronomyApp {
 
   async init() {
     try {
-      console.log('🚀 Initializing Astronomy Application...');
-
+  
       // 检查WebGL支持
       if (!this.checkWebGLSupport()) {
         return;
@@ -187,7 +196,6 @@ class AstronomyApp {
     console.log('🎭 Loading screen element:', loadingScreen);
     
     if (loadingScreen) {
-      console.log('🎭 Hiding loading screen...');
       loadingScreen.style.opacity = '0';
       loadingScreen.style.transition = 'opacity 0.5s ease';
       setTimeout(() => {
@@ -250,39 +258,30 @@ class AstronomyApp {
 
   async createCelestialSystem() {
     try {
-      console.log('🌌 Creating celestial system...');
-
       // 创建太阳
-      console.log('☀️ Creating Sun...');
-      const sun = new Sun();
-      await sun.initialize(); // 基础初始化
-      await sun.initializeSun(); // 太阳特定初始化
+      const sun = new Sun({ debugMode: this.debugMode });
+      await sun.initialize();
+      await sun.initializeSun();
       this.celestialBodies.set('sun', sun);
       this.sceneManager.addCelestialBody(sun);
-      console.log('✅ Sun created successfully');
 
       // 创建地球
-      console.log('🌍 Creating Earth...');
       const earth = new Earth();
-      await earth.initialize(); // 基础初始化
-      await earth.initializeEarth(); // 地球特定初始化
+      await earth.initialize();
+      await earth.initializeEarth();
       this.celestialBodies.set('earth', earth);
       this.sceneManager.addCelestialBody(earth);
-      console.log('✅ Earth created successfully');
 
       // 创建金星
-      console.log('♀️ Creating Venus...');
       const venus = new Venus();
-      await venus.initialize(); // 基础初始化
-      await venus.initializeVenus(); // 金星特定初始化
+      await venus.initialize();
+      await venus.initializeVenus();
       this.celestialBodies.set('venus', venus);
       this.sceneManager.addCelestialBody(venus);
-      console.log('✅ Venus created successfully');
-
-      console.log(`🪐 Created ${this.celestialBodies.size} celestial bodies`);
 
     } catch (error) {
-      console.error('Failed to create celestial system:', error);
+      console.error('❌ CRITICAL: Celestial system creation failed:', error);
+      console.error('❌ Error stack:', error.stack);
       throw error;
     }
   }
@@ -302,13 +301,9 @@ class AstronomyApp {
     // 初始化时间控制面板
     timeControlPanel.show();
 
-    console.log(`⏰ Time system initialized to ${transitDate.toUTCString()}`);
-    console.log('🌟 Transit calculator initialized');
-    console.log('⏰ Advanced time control system ready');
   }
 
   async setupInteractiveSystems() {
-    console.log('🔭 Setting up interactive systems...');
 
     // 初始化历史观测系统
     await historicalObservationSystem.initialize();
@@ -326,7 +321,6 @@ class AstronomyApp {
     await educationalGuidanceSystem.initialize();
 
     // 初始化现代界面系统
-    console.log('🎨 Setting up modern interface...');
     modernInterface.createModernNavigation();
     modernInterface.createModernControlPanel();
     modernInterface.createHelpModal();
@@ -338,14 +332,6 @@ class AstronomyApp {
     // 设置键盘快捷键
     this.setupInteractiveKeyboardShortcuts();
 
-    console.log('✅ Interactive systems initialized');
-    console.log('🏛️ Historical observation system: Active');
-    console.log('🔭 Telescope simulation: Ready');
-    console.log('📊 User data recorder: Initialized');
-    console.log('🔬 Parallax calculation engine: Ready');
-    console.log('📚 Educational guidance system: Ready');
-    console.log('🎨 Modern interface: Active');
-    console.log('🔗 UI integration system: Active');
   }
 
   setupInteractiveKeyboardShortcuts() {
@@ -406,8 +392,64 @@ class AstronomyApp {
         // 手动内存清理
         this.performMemoryCleanup();
         break;
+      case 'd':
+        // 切换debug模式 (Ctrl+D 或 Cmd+D)
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          this.toggleDebugMode();
+        }
+        break;
       }
     });
+  }
+
+  async toggleDebugMode() {
+    this.debugMode = !this.debugMode;
+    console.log(`🔧 Debug mode ${this.debugMode ? 'enabled' : 'disabled'}`);
+    
+    // 显示调试状态提示
+    this.showNotification(`Debug mode ${this.debugMode ? 'ON' : 'OFF'} - Sun is now ${this.debugMode ? 'red sphere' : 'textured'}`);
+    
+    // 重新创建太阳以应用debug模式
+    const sun = this.celestialBodies.get('sun');
+    if (sun) {
+      // 移除旧的太阳
+      this.sceneManager.scene.remove(sun.mesh);
+      
+      // 创建新的太阳实例
+      const newSun = new Sun({ debugMode: this.debugMode });
+      await newSun.initialize();
+      await newSun.initializeSun();
+      
+      // 替换旧的太阳
+      this.celestialBodies.set('sun', newSun);
+      this.sceneManager.addCelestialBody(newSun);
+      
+      console.log('🌞 Sun reinitialized in debug mode');
+    }
+  }
+
+  showNotification(message) {
+    // 创建简单的通知提示
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-radius: 5px;
+      z-index: 10000;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
   }
 
   showHistoricalObservations() {

@@ -34,8 +34,8 @@ export class TimeControlPanel {
     this.panel.id = 'time-control-panel';
     this.panel.innerHTML = `
       <div class="time-panel-header">
-        <h3>⏰ 时间控制面板</h3>
-        <button class="close-btn" title="关闭">×</button>
+        <h3>时间控制面板</h3>
+        <button class="close-btn" title="关闭面板">×</button>
       </div>
       
       <div class="time-panel-content">
@@ -45,121 +45,68 @@ export class TimeControlPanel {
             <label>当前时间：</label>
             <span id="current-time-display">--</span>
           </div>
-          <div class="julian-date">
-            <label>儒略日：</label>
-            <span id="julian-date-display">--</span>
-          </div>
-        </div>
-
-        <!-- 播放控制 -->
-        <div class="playback-controls">
-          <div class="control-row">
-            <button id="btn-play-pause" class="control-btn" title="播放/暂停">▶️</button>
-            <button id="btn-step-back" class="control-btn" title="后退1天">◀️</button>
-            <button id="btn-step-forward" class="control-btn" title="前进1天">▶️</button>
-            <button id="btn-reset" class="control-btn" title="重置到凌日开始">🔄</button>
-          </div>
-          
-          <div class="speed-control">
-            <label>速度：</label>
-            <input type="range" id="speed-slider" min="0.01" max="1000" value="100" step="0.01">
+          <div class="speed-info">
+            <label>播放速度：</label>
             <span id="speed-display">100x</span>
           </div>
         </div>
 
-        <!-- 时间模式 -->
-        <div class="time-modes">
-          <label>时间模式：</label>
-          <select id="time-mode-select">
-            <option value="accelerated">加速模式</option>
-            <option value="step_by_step">步进模式</option>
-            <option value="contact_mode">接触模式</option>
-            <option value="observation_mode">观测模式</option>
-          </select>
+        <!-- 基础播放控制 -->
+        <div class="playback-controls">
+          <h4>基础控制</h4>
+          <div class="control-row">
+            <button id="btn-play-pause" class="control-btn" title="播放或暂停时间">
+              播放/暂停
+            </button>
+            <button id="btn-reset" class="control-btn" title="重置时间到凌日开始">
+              重置时间
+            </button>
+          </div>
+          
+          <div class="speed-control">
+            <label>时间速度：</label>
+            <input type="range" id="speed-slider" min="0.01" max="1000" value="100" step="0.01" title="调整时间播放速度">
+          </div>
         </div>
 
-        <!-- 凌日事件 -->
+        <!-- 快速跳转 -->
         <div class="transit-events">
-          <h4>🌟 凌日事件</h4>
+          <h4>快速跳转到关键时刻</h4>
           <div class="transit-buttons">
-            <button class="transit-btn" data-year="1761" data-contact="first">1761年第一次接触</button>
-            <button class="transit-btn" data-year="1761" data-contact="second">第二次接触</button>
-            <button class="transit-btn" data-year="1761" data-contact="third">第三次接触</button>
-            <button class="transit-btn" data-year="1761" data-contact="fourth">第四次接触</button>
+            <button class="transit-btn" data-year="1761" data-contact="first" title="跳转到1761年凌日开始时刻">
+              1761年凌日开始
+            </button>
+            <button class="transit-btn" data-year="1761" data-contact="fourth" title="跳转到1761年凌日结束时刻">
+              1761年凌日结束
+            </button>
           </div>
           <div class="transit-buttons">
-            <button class="transit-btn" data-year="1769" data-contact="first">1769年第一次接触</button>
-            <button class="transit-btn" data-year="1769" data-contact="second">第二次接触</button>
-            <button class="transit-btn" data-year="1769" data-contact="third">第三次接触</button>
-            <button class="transit-btn" data-year="1769" data-contact="fourth">第四次接触</button>
+            <button class="transit-btn" data-year="1769" data-contact="first" title="跳转到1769年凌日开始时刻">
+              1769年凌日开始
+            </button>
+            <button class="transit-btn" data-year="1769" data-contact="fourth" title="跳转到1769年凌日结束时刻">
+              1769年凌日结束
+            </button>
           </div>
         </div>
 
-        <!-- 精确控制 -->
-        <div class="precise-controls">
-          <h4>🔍 精确控制</h4>
-          <div class="precise-row">
-            <button id="btn-step-contact" class="precise-btn">步进到接触点</button>
-            <button id="btn-step-keypoint" class="precise-btn">步进到关键点</button>
-            <button id="btn-step-measurement" class="precise-btn">步进到测量点</button>
-          </div>
-        </div>
-
-        <!-- 演示模式 -->
-        <div class="demo-section">
-          <h4>🎓 教学演示</h4>
-          <select id="demo-sequence-select">
-            <option value="">选择演示序列</option>
-            <option value="完整1761凌日">完整1761凌日演示</option>
-            <option value="视差测量演示">视差测量演示</option>
-          </select>
-          <div class="demo-controls">
-            <button id="btn-start-demo" class="demo-btn">开始演示</button>
-            <button id="btn-stop-demo" class="demo-btn" disabled>停止演示</button>
-          </div>
-        </div>
-
-        <!-- 书签管理 -->
-        <div class="bookmark-section">
-          <h4>🔖 书签管理</h4>
-          <div class="bookmark-add">
-            <input type="text" id="bookmark-label" placeholder="书签名称">
-            <button id="btn-add-bookmark">添加书签</button>
-          </div>
-          <div class="bookmark-list" id="bookmark-list">
-            <div class="bookmark-item">暂无书签</div>
-          </div>
-        </div>
-
-        <!-- 观测记录 -->
-        <div class="observation-section">
-          <h4>📊 观测记录</h4>
-          <div class="observation-controls">
-            <button id="btn-record-observation">记录观测</button>
-            <button id="btn-export-data">导出数据</button>
-          </div>
-          <div class="observation-log" id="observation-log">
-            <div class="log-item">暂无观测记录</div>
-          </div>
-        </div>
-
-        <!-- 进度条 -->
-        <div class="progress-section">
-          <label>时间进度：</label>
-          <div class="progress-container">
-            <div class="progress-bar">
-              <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <span id="progress-text">0%</span>
-          </div>
-        </div>
-
-        <!-- 凌日状态 -->
+        <!-- 当前状态 -->
         <div class="transit-status">
-          <h4>🌟 凌日状态</h4>
+          <h4>当前状态</h4>
           <div id="transit-info">
             <div>当前状态：无凌日</div>
             <div>下一次凌日：--</div>
+          </div>
+        </div>
+
+        <!-- 操作提示 -->
+        <div class="help-section">
+          <h4>操作提示</h4>
+          <div class="help-text">
+            <p>• 使用播放/暂停按钮控制时间</p>
+            <p>• 拖动速度滑块调整播放速度</p>
+            <p>• 点击快速跳转按钮到关键时刻</p>
+            <p>• 按空格键快速暂停/播放</p>
           </div>
         </div>
       </div>
@@ -309,17 +256,28 @@ export class TimeControlPanel {
         cursor: pointer;
       }
 
-      .transit-events, .precise-controls, .demo-section, .bookmark-section, .observation-section {
+      .transit-events, .transit-status, .help-section {
         margin-bottom: 15px;
         padding: 10px;
         background: rgba(0, 0, 0, 0.1);
         border-radius: 5px;
       }
 
-      .transit-events h4, .precise-controls h4, .demo-section h4, .bookmark-section h4, .observation-section h4 {
+      .playback-controls h4, .transit-events h4, .transit-status h4, .help-section h4 {
         margin: 0 0 10px 0;
         color: #ffd700;
         font-size: 12px;
+        font-weight: bold;
+      }
+      
+      .help-text {
+        font-size: 10px;
+        color: #cccccc;
+        line-height: 1.4;
+      }
+      
+      .help-text p {
+        margin: 4px 0;
       }
 
       .transit-buttons {
@@ -422,29 +380,11 @@ export class TimeControlPanel {
   setupControls() {
     this.controls = {
       playPause: this.panel.querySelector('#btn-play-pause'),
-      stepBack: this.panel.querySelector('#btn-step-back'),
-      stepForward: this.panel.querySelector('#btn-step-forward'),
       reset: this.panel.querySelector('#btn-reset'),
       speedSlider: this.panel.querySelector('#speed-slider'),
       speedDisplay: this.panel.querySelector('#speed-display'),
-      timeModeSelect: this.panel.querySelector('#time-mode-select'),
-      stepContact: this.panel.querySelector('#btn-step-contact'),
-      stepKeypoint: this.panel.querySelector('#btn-step-keypoint'),
-      stepMeasurement: this.panel.querySelector('#btn-step-measurement'),
-      demoSequenceSelect: this.panel.querySelector('#demo-sequence-select'),
-      startDemo: this.panel.querySelector('#btn-start-demo'),
-      stopDemo: this.panel.querySelector('#btn-stop-demo'),
-      addBookmark: this.panel.querySelector('#btn-add-bookmark'),
-      bookmarkLabel: this.panel.querySelector('#bookmark-label'),
-      bookmarkList: this.panel.querySelector('#bookmark-list'),
-      recordObservation: this.panel.querySelector('#btn-record-observation'),
-      exportData: this.panel.querySelector('#btn-export-data'),
       currentTime: this.panel.querySelector('#current-time-display'),
-      julianDate: this.panel.querySelector('#julian-date-display'),
-      progressFill: this.panel.querySelector('#progress-fill'),
-      progressText: this.panel.querySelector('#progress-text'),
-      transitInfo: this.panel.querySelector('#transit-info'),
-      logContainer: this.panel.querySelector('#observation-log')
+      transitInfo: this.panel.querySelector('#transit-info')
     };
   }
 
@@ -453,99 +393,66 @@ export class TimeControlPanel {
    */
   bindEvents() {
     // 播放控制
-    this.controls.playPause.addEventListener('click', () => {
-      if (window.timeController) {
-        window.timeController.togglePlayState();
-      }
-    });
+    if (this.controls.playPause) {
+      this.controls.playPause.addEventListener('click', () => {
+        if (window.timeController) {
+          window.timeController.togglePlayState();
+        }
+      });
+    }
 
-    this.controls.stepBack.addEventListener('click', () => {
-      advancedTimeController.stepTime(-1);
-    });
-
-    this.controls.stepForward.addEventListener('click', () => {
-      advancedTimeController.stepTime(1);
-    });
-
-    this.controls.reset.addEventListener('click', () => {
-      if (window.timeController) {
-        window.timeController.jumpToTime(new Date('1761-06-06T02:19:00Z'));
-      }
-    });
+    if (this.controls.reset) {
+      this.controls.reset.addEventListener('click', () => {
+        if (window.timeController) {
+          window.timeController.jumpToTime(new Date('1761-06-06T02:19:00Z'));
+        }
+      });
+    }
 
     // 速度控制
-    this.controls.speedSlider.addEventListener('input', (e) => {
-      const speed = parseFloat(e.target.value);
-      if (window.timeController) {
-        window.timeController.setSpeed(speed);
-      }
-      this.controls.speedDisplay.textContent = `${speed}x`;
-    });
-
-    // 时间模式
-    this.controls.timeModeSelect.addEventListener('change', (e) => {
-      advancedTimeController.setTimeMode(e.target.value);
-    });
-
-    // 精确控制
-    this.controls.stepContact.addEventListener('click', () => {
-      advancedTimeController.stepTime(1, 'contact');
-    });
-
-    this.controls.stepKeypoint.addEventListener('click', () => {
-      advancedTimeController.stepTime(1, 'keypoint');
-    });
-
-    this.controls.stepMeasurement.addEventListener('click', () => {
-      advancedTimeController.stepTime(1, 'measurement');
-    });
-
-    // 演示控制
-    this.controls.startDemo.addEventListener('click', () => {
-      const sequence = this.controls.demoSequenceSelect.value;
-      if (sequence) {
-        advancedTimeController.startDemoSequence(sequence);
-      }
-    });
-
-    this.controls.stopDemo.addEventListener('click', () => {
-      advancedTimeController.stopDemoSequence();
-    });
-
-    // 书签管理
-    this.controls.addBookmark.addEventListener('click', () => {
-      const label = this.controls.bookmarkLabel.value.trim() || '书签';
-      if (window.timeController) {
-        advancedTimeController.addBookmark(window.timeController.getTime(), label);
-      }
-      this.updateBookmarks();
-    });
-
-    // 观测记录
-    this.controls.recordObservation.addEventListener('click', () => {
-      this.recordObservation();
-    });
-
-    this.controls.exportData.addEventListener('click', () => {
-      this.exportData();
-    });
+    if (this.controls.speedSlider) {
+      this.controls.speedSlider.addEventListener('input', (e) => {
+        const speed = parseFloat(e.target.value);
+        if (window.timeController) {
+          window.timeController.setSpeed(speed);
+        }
+        if (this.controls.speedDisplay) {
+          this.controls.speedDisplay.textContent = `${speed}x`;
+        }
+      });
+    }
 
     // 凌日事件按钮
     this.panel.querySelectorAll('.transit-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const year = parseInt(e.target.dataset.year);
         const contact = e.target.dataset.contact;
-        const contactTime = transitCalculator.getHistoricalObservations(year)[0]?.contactTimes?.contactTimes[contact];
-        if (contactTime) {
-          timeController.jumpToTime(contactTime);
+        
+        // 简化的跳转逻辑
+        let targetDate;
+        if (year === 1761) {
+          targetDate = contact === 'first' ? 
+            new Date('1761-06-06T02:19:00Z') : 
+            new Date('1761-06-06T08:57:00Z');
+        } else if (year === 1769) {
+          targetDate = contact === 'first' ? 
+            new Date('1769-06-03T02:19:00Z') : 
+            new Date('1769-06-03T08:57:00Z');
+        }
+        
+        if (targetDate && window.timeController) {
+          window.timeController.jumpToTime(targetDate);
         }
       });
     });
 
     // 面板控制
-    this.panel.querySelector('.close-btn').addEventListener('click', () => {
-      this.hide();
-    });
+    const closeBtn = this.panel.querySelector('.close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        this.hide();
+      });
+    }
 
     // 拖动功能
     this.makeDraggable();
@@ -582,17 +489,8 @@ export class TimeControlPanel {
    */
   updateTimeDisplay(data) {
     if (this.controls.currentTime) {
-      this.controls.currentTime.textContent = data.formattedTime || data.time.toISOString().slice(0, 19);
-    }
-
-    if (this.controls.julianDate) {
-      this.controls.julianDate.textContent = data.julianDate?.toFixed(6) || '--';
-    }
-
-    if (this.controls.progressFill && this.controls.progressText) {
-      const progress = data.progress || 0;
-      this.controls.progressFill.style.width = `${progress}%`;
-      this.controls.progressText.textContent = `${progress.toFixed(1)}%`;
+      const timeString = data.formattedTime || data.time.toISOString().slice(0, 19).replace('T', ' ');
+      this.controls.currentTime.textContent = timeString;
     }
   }
 
