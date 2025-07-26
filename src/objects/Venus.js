@@ -48,6 +48,9 @@ export class Venus extends CelestialBody {
     // 金星逆向自转
     this.rotationSpeed *= -1;
 
+    // 标志表示使用自定义材质创建
+    this.hasCustomMaterial = true;
+
     // 异步初始化将在外部调用
   }
 
@@ -55,21 +58,78 @@ export class Venus extends CelestialBody {
     try {
       console.log('♀️ 开始初始化金星...');
       await this.loadVenusTextures();
+      
+      // 创建材质（由于hasCustomMaterial=true，基类不会创建）
+      this.createSurfaceFeatures();
+      
+      // 创建网格（如果还没有创建）
+      if (!this.mesh) {
+        this.createMesh();
+      }
+      
       this.createDenseAtmosphere();
       this.createSulfuricClouds();
-      this.createSurfaceFeatures();
+      
+      // 立即设置金星到轨道位置（简化位置，便于调试）
+      const venusPosition = new THREE.Vector3(5.8, 0, 0); // 约5.8单位距离的简单位置
+      this.position.copy(venusPosition);
+      if (this.mesh) {
+        this.mesh.position.copy(venusPosition);
+      }
+      
       console.log('♀️ 金星已初始化，具有浓密大气层和云层');
       console.log(`♀️ 金星位置：(${this.position.x}, ${this.position.y}, ${this.position.z})`);
       console.log(`♀️ 金星网格对象：${this.mesh ? '已创建' : '未创建'}`);
       if (this.mesh) {
         console.log(`♀️ 金星网格位置：(${this.mesh.position.x}, ${this.mesh.position.y}, ${this.mesh.position.z})`);
         console.log(`♀️ 金星材质：${this.mesh.material ? this.mesh.material.type : '未设置'}`);
+        console.log(`♀️ 金星材质颜色：${this.mesh.material ? '0x' + this.mesh.material.color.getHex().toString(16) : '未设置'}`);
         console.log(`♀️ 金星可见性：${this.mesh.visible}`);
         console.log(`♀️ 金星父对象：${this.mesh.parent ? this.mesh.parent.name || '未命名对象' : '无父对象'}`);
       }
+
+      // 调试监控已暂时禁用，以减少控制台输出
+      // this.startRenderingDebugMonitor();
     } catch (error) {
       console.warn('❌ 金星视觉效果初始化失败:', error);
     }
+  }
+
+  /**
+   * 启动渲染和光照调试监控器
+   */
+  startRenderingDebugMonitor() {
+    setInterval(() => {
+      if (this.mesh) {
+        console.log('💡 金星渲染和光照检查:');
+        
+        // 获取场景中的光源信息（简化版，避免重复）
+        const scene = this.mesh.parent;
+        if (scene) {
+          let lightCount = 0;
+          let sunLightIntensity = 0;
+          scene.traverse((child) => {
+            if (child.isLight) {
+              lightCount++;
+              if (child.type === 'PointLight' && child.position.length() < 1) {
+                sunLightIntensity = child.intensity;
+                const lightToVenus = child.position.distanceTo(this.mesh.position);
+                console.log(`💡 - 太阳光源强度: ${sunLightIntensity}`);
+                console.log(`💡 - 太阳到金星距离: ${lightToVenus.toFixed(2)}`);
+              }
+            }
+          });
+          console.log(`💡 - 场景光源总数: ${lightCount}`);
+        }
+        
+        // 检查几何体和渲染状态
+        console.log(`🎨 - 网格位置: (${this.mesh.position.x.toFixed(2)}, ${this.mesh.position.y.toFixed(2)}, ${this.mesh.position.z.toFixed(2)})`);
+        console.log(`🎨 - 网格可见: ${this.mesh.visible}`);
+        console.log(`🎨 - 材质接受光照: ${this.mesh.material.type !== 'MeshBasicMaterial'}`);
+        
+        console.log('💡 ==================');
+      }
+    }, 8000); // 每8秒检查一次，错开时间
   }
 
   async loadVenusTextures() {
@@ -78,11 +138,25 @@ export class Venus extends CelestialBody {
     // 尝试加载主要纹理
     try {
       this.surfaceTexture = await new Promise((resolve, reject) => {
-        textureLoader.load(TEXTURE_PATHS.VENUS.surface, resolve, undefined, reject);
+        textureLoader.load(
+          TEXTURE_PATHS.VENUS.surface,
+          (texture) => {
+            console.log(`♀️ 金星表面纹理加载成功: ${TEXTURE_PATHS.VENUS.surface}`);
+            console.log(`♀️ 纹理尺寸: ${texture.image.width}x${texture.image.height}`);
+            resolve(texture);
+          },
+          (progress) => {
+            console.log(`♀️ 金星纹理加载进度: ${Math.round(progress.loaded / progress.total * 100)}%`);
+          },
+          (error) => {
+            console.error('❌ 金星表面纹理加载失败:', error);
+            reject(error);
+          }
+        );
       });
-      console.log(`♀️ 金星表面纹理加载成功: ${TEXTURE_PATHS.VENUS.surface}`);
     } catch (error) {
-      console.warn('❌ 金星表面纹理加载失败:', error);
+      console.warn('❌ 金星表面纹理加载失败，将使用占位符:', error);
+      this.surfaceTexture = null;
     }
 
     // 尝试加载可选纹理（静默处理失败）
@@ -192,20 +266,43 @@ export class Venus extends CelestialBody {
   }
 
   createSurfaceFeatures() {
-    if (!this.surfaceTexture) return;
-
-    // 金星表面特征
-    this.material = new THREE.MeshPhongMaterial({
-      map: this.surfaceTexture,
-      color: this.color,
-      shininess: 10,
-      specular: 0x222222,
+    // 创建金星材质，确保总是有可用的材质
+    const materialOptions = {
       emissive: 0x663300,
-      emissiveIntensity: 0.1
-    });
+      emissiveIntensity: 0.1,
+      // 确保至少有一个基础颜色
+      color: this.color
+    };
 
+    // 优先使用专用的表面纹理
+    if (this.surfaceTexture) {
+      materialOptions.map = this.surfaceTexture;
+      console.log('♀️ 金星表面纹理已应用');
+      console.log('♀️ 纹理对象:', this.surfaceTexture);
+    } else if (this.texture) {
+      materialOptions.map = this.texture;
+      console.log('♀️ 金星使用基础纹理');
+    } else {
+      console.log('♀️ 金星使用纯色材质 (颜色: 0x' + this.color.toString(16) + ')');
+      // 确保颜色是明亮的，便于调试
+      materialOptions.color = 0xff8800; // 临时使用橙色便于识别
+      console.log('♀️ 临时使用橙色便于调试');
+    }
+
+    // 使用MeshBasicMaterial确保可见性，暂时跳过光照问题
+    this.material = new THREE.MeshBasicMaterial(materialOptions);
+    console.log('♀️ 金星材质创建完成 (MeshBasicMaterial)');
+
+    // 更新网格材质
     if (this.mesh) {
       this.mesh.material = this.material;
+      console.log('♀️ 金星材质已更新到网格');
+      
+      // 确保mesh可见并且材质正确设置
+      this.mesh.visible = true;
+      console.log('♀️ 金星网格可见性已确认');
+    } else {
+      console.warn('❌ 金星网格对象不存在，无法应用材质');
     }
   }
 

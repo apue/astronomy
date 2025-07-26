@@ -56,7 +56,12 @@ export class CelestialBody {
     try {
       await this.loadTexture();
       this.createGeometry();
-      this.createMaterial();
+      
+      // 只有在没有自定义材质创建方法时才创建默认材质
+      if (!this.hasCustomMaterial) {
+        this.createMaterial();
+      }
+      
       this.createMesh();
       this.setupInteraction();
 
@@ -475,7 +480,8 @@ export class CelestialBody {
 
     if (this.material) {
       if (hovered) {
-        this.material.emissive.setHex(0x222222);
+        // 使用更自然的高亮效果，避免变灰色
+        this.material.emissive.setHex(0x111111);
       } else if (!this.isSelected) {
         this.material.emissive.setHex(this.emissive);
       }

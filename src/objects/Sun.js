@@ -135,28 +135,9 @@ export class Sun extends CelestialBody {
   }
 
   createLighting() {
-    if (this.debugMode) {
-      // Debug模式下使用简化的光照
-      this.sunLight = new THREE.PointLight(0xffffff, 1, 1000);
-      this.sunLight.position.set(0, 0, 0);
-      this.sunLight.castShadow = false; // 关闭阴影以提高性能
-    } else {
-      // 正常模式：完整光照系统
-      this.sunLight = new THREE.PointLight(0xffffff, 2, 1000);
-      this.sunLight.position.set(0, 0, 0);
-      this.sunLight.castShadow = true;
-
-      // 阴影配置
-      this.sunLight.shadow.mapSize.width = 2048;
-      this.sunLight.shadow.mapSize.height = 2048;
-      this.sunLight.shadow.camera.near = 0.5;
-      this.sunLight.shadow.camera.far = 500;
-      this.sunLight.shadow.bias = -0.0001;
-
-      // 环境光补充
-      this.ambientLight = new THREE.AmbientLight(0x404040, 0.2);
-      this.mesh.add(this.ambientLight);
-    }
+    // 光源现在由SceneManager统一管理，Sun对象不再创建额外光源
+    console.log('🌞 Sun光源创建被禁用，由SceneManager统一管理');
+    return; // 直接返回，不创建任何光源
 
     this.mesh.add(this.sunLight);
   }

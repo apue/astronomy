@@ -294,6 +294,17 @@ class AstronomyApp {
       this.celestialBodies.set('venus', venus);
       this.sceneManager.addCelestialBody(venus);
 
+      // 初始化天体位置 - 使用当前时间的朱利安日
+      const currentJulianDate = timeController.getJulianDate();
+      console.log(`🌍 初始化天体位置 [JD=${currentJulianDate}]`);
+      
+      this.celestialBodies.forEach(body => {
+        if (body.updatePosition) {
+          body.updatePosition(currentJulianDate);
+          console.log(`🌍 ${body.name} 初始位置: (${body.position.x.toFixed(2)}, ${body.position.y.toFixed(2)}, ${body.position.z.toFixed(2)})`);
+        }
+      });
+
     } catch (error) {
       console.error('❌ CRITICAL: Celestial system creation failed:', error);
       console.error('❌ Error stack:', error.stack);

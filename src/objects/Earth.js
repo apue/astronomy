@@ -37,6 +37,9 @@ export class Earth extends CelestialBody {
     this.cloudRotationSpeed = 0.001;
     this.cloudAngle = 0;
 
+    // 标志表示使用自定义材质创建
+    this.hasCustomMaterial = true;
+
     // 异步初始化将在外部调用
   }
 
@@ -44,21 +47,98 @@ export class Earth extends CelestialBody {
     try {
       console.log('🌍 开始初始化地球...');
       await this.loadEarthTextures();
+      
+      // 创建材质（由于hasCustomMaterial=true，基类不会创建）
+      this.createNightSide();
+      
+      // 创建网格（如果还没有创建）
+      if (!this.mesh) {
+        this.createMesh();
+      }
+      
       this.createAtmosphere();
       this.createClouds();
-      this.createNightSide();
+      
+      // 立即设置地球到轨道位置（简化位置，便于调试）
+      const earthPosition = new THREE.Vector3(8, 0, 0); // 8单位距离的简单位置
+      this.position.copy(earthPosition);
+      if (this.mesh) {
+        this.mesh.position.copy(earthPosition);
+      }
+      
       console.log('🌍 地球已初始化，具有大气层和云层');
       console.log(`🌍 地球位置：(${this.position.x}, ${this.position.y}, ${this.position.z})`);
       console.log(`🌍 地球网格对象：${this.mesh ? '已创建' : '未创建'}`);
       if (this.mesh) {
         console.log(`🌍 地球网格位置：(${this.mesh.position.x}, ${this.mesh.position.y}, ${this.mesh.position.z})`);
         console.log(`🌍 地球材质：${this.mesh.material ? this.mesh.material.type : '未设置'}`);
+        console.log(`🌍 地球材质颜色：${this.mesh.material ? '0x' + this.mesh.material.color.getHex().toString(16) : '未设置'}`);
         console.log(`🌍 地球可见性：${this.mesh.visible}`);
         console.log(`🌍 地球父对象：${this.mesh.parent ? this.mesh.parent.name || '未命名对象' : '无父对象'}`);
       }
+
+      // 调试监控已暂时禁用，以减少控制台输出
+      // this.startRenderingDebugMonitor();
     } catch (error) {
       console.warn('❌ 地球视觉效果初始化失败:', error);
     }
+  }
+
+  /**
+   * 启动渲染和光照调试监控器
+   */
+  startRenderingDebugMonitor() {
+    setInterval(() => {
+      if (this.mesh) {
+        console.log('💡 地球渲染和光照检查:');
+        
+        // 获取场景中的光源
+        const scene = this.mesh.parent;
+        if (scene) {
+          const lights = [];
+          scene.traverse((child) => {
+            if (child.isLight) {
+              lights.push({
+                type: child.type,
+                position: child.position.clone(),
+                intensity: child.intensity,
+                color: child.color.getHex(),
+                distance: child.distance || '无限制'
+              });
+            }
+          });
+          
+          console.log(`💡 - 场景中的光源数量: ${lights.length}`);
+          lights.forEach((light, index) => {
+            console.log(`💡 - 光源${index + 1}: ${light.type}`);
+            console.log(`💡   位置: (${light.position.x}, ${light.position.y}, ${light.position.z})`);
+            console.log(`💡   强度: ${light.intensity}`);
+            console.log(`💡   颜色: 0x${light.color.toString(16)}`);
+            console.log(`💡   距离: ${light.distance}`);
+            
+            // 计算光源到地球的距离
+            const lightToEarth = light.position.distanceTo(this.mesh.position);
+            console.log(`💡   到地球距离: ${lightToEarth.toFixed(2)}`);
+          });
+        }
+        
+        // 检查几何体和渲染状态
+        console.log(`🎨 - 几何体存在: ${this.mesh.geometry ? '是' : '否'}`);
+        console.log(`🎨 - 几何体顶点数: ${this.mesh.geometry ? this.mesh.geometry.attributes.position.count : 'N/A'}`);
+        console.log(`🎨 - 网格位置: (${this.mesh.position.x.toFixed(2)}, ${this.mesh.position.y.toFixed(2)}, ${this.mesh.position.z.toFixed(2)})`);
+        console.log(`🎨 - 网格缩放: (${this.mesh.scale.x}, ${this.mesh.scale.y}, ${this.mesh.scale.z})`);
+        console.log(`🎨 - 网格可见: ${this.mesh.visible}`);
+        console.log(`🎨 - 网格图层: ${this.mesh.layers.mask}`);
+        
+        // 检查材质的光照相关属性
+        if (this.mesh.material) {
+          console.log(`🎨 - 材质接受光照: ${this.mesh.material.type !== 'MeshBasicMaterial'}`);
+          console.log(`🎨 - 材质需要更新: ${this.mesh.material.needsUpdate}`);
+        }
+        
+        console.log('💡 ==================');
+      }
+    }, 6000); // 每6秒检查一次
   }
 
   async loadEarthTextures() {
@@ -67,11 +147,25 @@ export class Earth extends CelestialBody {
     // 尝试加载主要纹理
     try {
       this.dayTexture = await new Promise((resolve, reject) => {
-        textureLoader.load(TEXTURE_PATHS.EARTH.day, resolve, undefined, reject);
+        textureLoader.load(
+          TEXTURE_PATHS.EARTH.day, 
+          (texture) => {
+            console.log(`🌍 地球日间纹理加载成功: ${TEXTURE_PATHS.EARTH.day}`);
+            console.log(`🌍 纹理尺寸: ${texture.image.width}x${texture.image.height}`);
+            resolve(texture);
+          },
+          (progress) => {
+            console.log(`🌍 地球纹理加载进度: ${Math.round(progress.loaded / progress.total * 100)}%`);
+          },
+          (error) => {
+            console.error('❌ 地球日间纹理加载失败:', error);
+            reject(error);
+          }
+        );
       });
-      console.log(`🌍 地球日间纹理加载成功: ${TEXTURE_PATHS.EARTH.day}`);
     } catch (error) {
-      console.warn('❌ 地球日间纹理加载失败:', error);
+      console.warn('❌ 地球日间纹理加载失败，将使用占位符:', error);
+      this.dayTexture = null;
     }
 
     // 尝试加载可选纹理（静默处理失败）
@@ -143,21 +237,56 @@ export class Earth extends CelestialBody {
   }
 
   createNightSide() {
-    if (!this.nightTexture) return;
-
-    // 简化的昼夜材质
-    this.material = new THREE.MeshPhongMaterial({
-      map: this.dayTexture,
-      bumpMap: this.bumpTexture,
+    // 创建地球材质，确保总是有可用的材质
+    const materialOptions = {
       bumpScale: 0.02,
-      emissiveMap: this.nightTexture,
-      emissive: 0x222222,
-      emissiveIntensity: 0.5
-    });
+      // 确保至少有一个基础颜色
+      color: this.color
+    };
+
+    // 确保使用日间纹理作为主纹理
+    if (this.dayTexture) {
+      materialOptions.map = this.dayTexture;
+      console.log('🌍 地球日间纹理已应用');
+      console.log('🌍 纹理对象:', this.dayTexture);
+    } else if (this.texture) {
+      materialOptions.map = this.texture;
+      console.log('🌍 地球使用基础纹理');
+    } else {
+      console.log('🌍 地球使用纯色材质 (颜色: 0x' + this.color.toString(16) + ')');
+      // 确保颜色是明亮的，便于调试
+      materialOptions.color = 0x00ff00; // 临时使用绿色便于识别
+      console.log('🌍 临时使用绿色便于调试');
+    }
+
+    // 添加凹凸贴图
+    if (this.bumpTexture) {
+      materialOptions.bumpMap = this.bumpTexture;
+      console.log('🌍 地球凹凸纹理已应用');
+    }
+
+    // 如果有夜间纹理，添加发光效果
+    if (this.nightTexture) {
+      materialOptions.emissiveMap = this.nightTexture;
+      materialOptions.emissive = 0x222222;
+      materialOptions.emissiveIntensity = 0.5;
+      console.log('🌍 地球夜间纹理已应用');
+    }
+
+    // 使用MeshBasicMaterial确保可见性，暂时跳过光照问题
+    this.material = new THREE.MeshBasicMaterial(materialOptions);
+    console.log('🌍 地球材质创建完成 (MeshBasicMaterial)');
 
     // 更新网格材质
     if (this.mesh) {
       this.mesh.material = this.material;
+      console.log('🌍 地球材质已更新到网格');
+      
+      // 确保mesh可见并且材质正确设置
+      this.mesh.visible = true;
+      console.log('🌍 地球网格可见性已确认');
+    } else {
+      console.warn('❌ 地球网格对象不存在，无法应用材质');
     }
   }
 

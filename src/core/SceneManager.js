@@ -126,12 +126,23 @@ export class SceneManager {
   }
 
   setupLighting() {
-    // 环境光 - 提供基础照明
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
-    this.scene.add(ambientLight);
+    // 清理现有光源，避免重复
+    const existingLights = [];
+    this.scene.traverse((child) => {
+      if (child.isLight) {
+        existingLights.push(child);
+      }
+    });
+    existingLights.forEach(light => this.scene.remove(light));
+    console.log(`🌞 清理了 ${existingLights.length} 个现有光源`);
 
-    // 主光源 - 模拟太阳光
-    const sunLight = new THREE.PointLight(0xffffff, 1.5, 100);
+    // 环境光 - 提供基础照明（提高强度确保天体可见）
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+    this.scene.add(ambientLight);
+    console.log('🌞 环境光已设置，强度: 0.6');
+
+    // 主光源 - 模拟太阳光（大幅提高强度，移除衰减距离限制）
+    const sunLight = new THREE.PointLight(0xffffff, 8.0, 0);
     sunLight.position.set(0, 0, 0);
     sunLight.castShadow = true;
 
@@ -148,7 +159,15 @@ export class SceneManager {
     fillLight.position.set(-10, 10, 5);
     this.scene.add(fillLight);
 
-    console.log('Lighting setup complete');
+    // 确认最终光源设置
+    let finalLightCount = 0;
+    this.scene.traverse((child) => {
+      if (child.isLight) {
+        finalLightCount++;
+        console.log(`🌞 最终光源${finalLightCount}: ${child.type}, 强度: ${child.intensity}, 位置: (${child.position.x}, ${child.position.y}, ${child.position.z})`);
+      }
+    });
+    console.log(`🌞 光照设置完成，总共 ${finalLightCount} 个光源`);
   }
 
   setupMouseInteraction() {
@@ -426,7 +445,61 @@ export class SceneManager {
   }
 
   startRenderLoop() {
+    // 调试监控已暂时禁用，以减少控制台输出
+    // this.startSceneDebugMonitor();
     this.render();
+  }
+
+  /**
+   * 启动场景调试监控器
+   */
+  startSceneDebugMonitor() {
+    setInterval(() => {
+      console.log('🎥 场景状态检查:');
+      console.log(`🎥 - 相机位置: (${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)})`);
+      console.log(`🎥 - 相机目标: (${this.controls.target.x.toFixed(2)}, ${this.controls.target.y.toFixed(2)}, ${this.controls.target.z.toFixed(2)})`);
+      console.log(`🎥 - 相机距离原点: ${this.camera.position.length().toFixed(2)}`);
+      
+      // 检查天体在相机视野中的状态
+      const earth = this.celestialBodies.get('Earth');
+      const venus = this.celestialBodies.get('Venus');
+      
+      if (earth) {
+        const earthDistance = this.camera.position.distanceTo(earth.position);
+        console.log(`🌍 - 地球距离相机: ${earthDistance.toFixed(2)}`);
+        console.log(`🌍 - 地球在相机前方: ${this.isObjectInFrontOfCamera(earth.mesh) ? '是' : '否'}`);
+      }
+      
+      if (venus) {
+        const venusDistance = this.camera.position.distanceTo(venus.position);
+        console.log(`♀️ - 金星距离相机: ${venusDistance.toFixed(2)}`);
+        console.log(`♀️ - 金星在相机前方: ${this.isObjectInFrontOfCamera(venus.mesh) ? '是' : '否'}`);
+      }
+      
+      // 检查渲染器状态
+      console.log(`🎨 - 渲染器背景颜色: 0x${this.renderer.getClearColor().getHex().toString(16)}`);
+      console.log(`🎨 - 渲染器透明度: ${this.renderer.getClearAlpha()}`);
+      
+      console.log('🎥 ==================');
+    }, 7000); // 每7秒检查一次，避免与材质监控冲突
+  }
+
+  /**
+   * 检查对象是否在相机前方
+   */
+  isObjectInFrontOfCamera(object) {
+    if (!object) return false;
+    
+    // 计算从相机到对象的向量
+    const cameraToObject = new THREE.Vector3();
+    cameraToObject.subVectors(object.position, this.camera.position);
+    
+    // 获取相机的前向向量
+    const cameraForward = new THREE.Vector3();
+    this.camera.getWorldDirection(cameraForward);
+    
+    // 如果点积为正，说明对象在相机前方
+    return cameraToObject.dot(cameraForward) > 0;
   }
 
   render() {
